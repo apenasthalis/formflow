@@ -1,0 +1,30 @@
+# ----------------------------------------------------------------------------
+# FormFlow — override de produção.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# O que muda em relação ao compose base:
+#   - Nginx publica apenas 8080 (HTTPS). As portas 80/443 desta VPS belongem a
+#     outra aplicação, então `!override` substitui a lista do compose base em vez
+#     de somar a ela.
+#   - Nginx recebe a configuração com TLS e os certificados do certbot.
+#   - O backend sobe com cookies de sessão seguros, exigidos por HTTPS.
+# ----------------------------------------------------------------------------
+
+services:
+  nginx:
+    ports: !override
+      - '8080:8080'
+    volumes:
+      - ./nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      # Certificados gerados no host por `certbot certonly`.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    # O healthcheck do compose base usa HTTP na 80, que agora pertence a outra
+    # aplicação. Aqui o Nginx só escuta TLS na 8080, então a verificação passa
+    # por HTTPS. `--no-check-certificate` mantém o probe válido tanto com o
+    # certificado provisório quanto com o do Let's Encrypt.
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', '--no-check-certificate', 'https://localhost:8080/health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s

@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+
+# Imagem do frontend (React + Vite).
+#   dev  -> vite dev server com HMR (acessado pelo Nginx via proxy)
+#   prod -> build estático servido por `vite preview` na mesma porta,
+#           de modo que o Nginx usa exatamente a mesma configuração.
+
+FROM node:22-alpine AS base
+WORKDIR /app
+
+FROM base AS deps
+COPY client/package.json client/package-lock.json* ./
+RUN npm ci --no-audit --no-fund
+
+FROM deps AS development
+ENV NODE_ENV=development
+COPY client/ ./
+EXPOSE 5173
+CMD ["npm", "run", "dev"]
+
+FROM deps AS build
+ENV NODE_ENV=production
+COPY client/ ./
+RUN npm run build
+
+FROM deps AS production
+ENV NODE_ENV=production
+COPY --from=build /app/dist ./dist
+COPY client/index.html client/vite.config.ts client/tsconfig*.json client/postcss.config.js client/tailwind.config.js ./
+EXPOSE 5173
+CMD ["npm", "run", "preview"]

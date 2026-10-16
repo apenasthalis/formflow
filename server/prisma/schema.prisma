@@ -1,0 +1,208 @@
+// Prisma schema — plataforma de formulários
+// Documentação do modelo: README.md (seção "Modelo de dados")
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  YES_NO
+  SCALE
+  RATING
+}
+
+enum SubmissionStatus {
+  COMPLETED
+  PARTIAL
+}
+
+// ---------------------------------------------------------------------------
+// Autenticação administrativa
+// ---------------------------------------------------------------------------
+
+model AdminUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(180)
+  passwordHash String   @db.VarChar(200)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  forms    Form[]
+  sessions Session[]
+
+  @@map("admin_users")
+}
+
+/// Sessões administrativas persistidas (permite revogação imediata).
+/// O cookie httpOnly do navegador carrega apenas o token; o banco guarda
+/// apenas o hash SHA-256 do token.
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @unique @db.VarChar(64)
+  userId    String   @db.Uuid
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Registro de tentativas de login, usado para limitar ataques de brute force.
+model LoginAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @db.VarChar(180)
+  ipHash     String?  @db.VarChar(64)
+  successful Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([email, createdAt])
+  @@index([ipHash, createdAt])
+  @@map("login_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Formulários
+// ---------------------------------------------------------------------------
+
+model Form {
+  id              String     @id @default(uuid()) @db.Uuid
+  title           String     @db.VarChar(160)
+  description     String?    @db.VarChar(2000)
+  /// Slug público e único. Definido na criação; editável pelo administrador.
+  slug            String     @unique @db.VarChar(80)
+  status          FormStatus @default(DRAFT)
+  welcomeMessage  String?    @db.VarChar(600)
+  thankYouMessage String?    @db.VarChar(600)
+  ownerId         String     @db.Uuid
+  publishedAt     DateTime?  @db.Timestamptz(3)
+  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+
+  owner      AdminUser    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  questions  Question[]
+  versions   FormVersion[]
+  submissions Submission[]
+
+  @@index([ownerId, updatedAt(sort: Desc)])
+  @@index([status])
+  @@map("forms")
+}
+
+/// Snapshot imutável da estrutura (perguntas + configurações) de um formulário.
+///
+/// Cada publicação gera uma versão. As submissões referenciam a versão em que
+/// foram respondidas, garantindo que alterações posteriores no editor nunca
+/// mudem retroativamente o significado de respostas já coletadas.
+model FormVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  formId        String   @db.Uuid
+  versionNumber Int
+  /// Snapshot JSON: { title, description, welcomeMessage, thankYouMessage, questions: [...] }
+  snapshot      Json     @db.JsonB
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  form        Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@unique([formId, versionNumber])
+  @@index([formId, createdAt(sort: Desc)])
+  @@map("form_versions")
+}
+
+/// Definição *editável* (rascunho) das perguntas de um formulário.
+model Question {
+  id          String       @id @default(uuid()) @db.Uuid
+  formId      String       @db.Uuid
+  /// Identificador estável da pergunta, preservado entre versões do formulário.
+  /// É a chave usada para casar respostas antigas com o snapshot da versão.
+  key         String       @db.VarChar(40)
+  title       String       @db.VarChar(500)
+  description String?      @db.VarChar(1000)
+  type        QuestionType
+  required    Boolean      @default(false)
+  position    Int
+  /// Configurações específicas do tipo (options, min/max, placeholder, ...).
+  settings    Json         @default("{}") @db.JsonB
+  errorMessage String?     @db.VarChar(300)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+
+  form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@unique([formId, key])
+  @@unique([formId, position])
+  @@index([formId, position])
+  @@map("questions")
+}
+
+// ---------------------------------------------------------------------------
+// Respostas
+// ---------------------------------------------------------------------------
+
+model Submission {
+  id           String           @id @default(uuid()) @db.Uuid
+  formId       String           @db.Uuid
+  formVersionId String          @db.Uuid
+  /// Chave de idempotência enviada pelo navegador: impede submissões duplicadas
+  /// por duplo clique ou reenvio de rede.
+  idempotencyKey String         @unique @db.VarChar(80)
+  status       SubmissionStatus @default(COMPLETED)
+  /// Duração aproximada do preenchimento em segundos (opcional, anonimizada).
+  durationSeconds Int?
+  submittedAt  DateTime         @default(now()) @db.Timestamptz(3)
+
+  form        Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  formVersion FormVersion @relation(fields: [formVersionId], references: [id], onDelete: Restrict)
+  answers     Answer[]
+
+  @@index([formId, submittedAt(sort: Desc)])
+  @@index([formVersionId])
+  @@map("submissions")
+}
+
+model Answer {
+  id           String   @id @default(uuid()) @db.Uuid
+  submissionId String   @db.Uuid
+  /// Referência opcional à pergunta atual. ON DELETE SET NULL preserva o
+  /// histórico mesmo que a pergunta seja removida do rascunho depois.
+  questionId   String?  @db.Uuid
+  /// Chave estável da pergunta (ver Question.key).
+  questionKey  String   @db.VarChar(40)
+  /// Resposta textual (texto curto/longo, "outro", etc.).
+  answerText   String?  @db.Text
+  /// Resposta estruturada: { selected: string[] } | { number: number } | { value: string }
+  answerJson   Json?    @db.JsonB
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   Question?  @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@unique([submissionId, questionKey])
+  @@index([questionKey])
+  @@map("answers")
+}

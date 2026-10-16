@@ -1,0 +1,30 @@
+# Dependências
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+.vite/
+
+# Variáveis de ambiente (mantenha apenas .env.example versionado)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs e temporários
+*.log
+npm-debug.log*
+logs/
+coverage/
+tmp/
+
+# Editores e sistema
+.vscode/
+.idea/
+.DS_Store
+*.swp
+# TypeScript incremental
+*.tsbuildinfo

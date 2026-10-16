@@ -1,0 +1,131 @@
+# ----------------------------------------------------------------------------
+# FormFlow — ambiente local completo (PostgreSQL + API + frontend + Nginx)
+#
+# Uso:  docker compose up -d --build
+# Docs: README.md
+# ----------------------------------------------------------------------------
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-formflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no arquivo .env}
+      POSTGRES_DB: ${POSTGRES_DB:-formflow}
+    volumes:
+      # Volume nomeado: os dados sobrevivem a `docker compose down` e recriações.
+      - pgdata:/var/lib/postgresql/data
+    # Exposto apenas em localhost, para inspeção com psql. Nunca publique o banco
+    # na rede pública; em produção remova este bloco.
+    ports:
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-formflow} -d ${POSTGRES_DB:-formflow}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks: [formflow]
+
+  # Serviço de migração: roda uma única vez, antes do backend subir.
+  # `service_completed_successfully` evita execuções concorrentes do Prisma.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+      target: development
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-formflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-formflow}?schema=public
+      APP_SECRET: ${APP_SECRET:?defina APP_SECRET no arquivo .env}
+    command: sh -c "npx prisma migrate deploy"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+    networks: [formflow]
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+      target: ${SERVER_BUILD_TARGET:-development}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-formflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-formflow}?schema=public
+      APP_SECRET: ${APP_SECRET:?defina APP_SECRET no arquivo .env}
+      CORS_ORIGIN: ${APP_HTTP_URL:-http://localhost}
+      PUBLIC_APP_URL: ${APP_HTTP_URL:-http://localhost}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-lax}
+      TRUST_PROXY: 1
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-43200}
+      RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-10}
+      RATE_LIMIT_PUBLIC_MAX: ${RATE_LIMIT_PUBLIC_MAX:-120}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./server/src:/app/src
+      - ./server/prisma:/app/prisma
+      - ./server/scripts:/app/scripts
+      - ./server/tests:/app/tests
+      - ./server/vitest.config.ts:/app/vitest.config.ts
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [formflow]
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      target: ${CLIENT_BUILD_TARGET:-development}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_PORT: 5173
+      # URL pública do app: usada pelo HMR do Vite através do Nginx.
+      APP_HTTP_URL: ${APP_HTTP_URL:-http://localhost}
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - ./client/index.html:/app/index.html
+    depends_on:
+      - server
+    networks: [formflow]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - '${APP_HTTP_PORT:-80}:80'
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      server:
+        condition: service_started
+      client:
+        condition: service_started
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost/health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [formflow]
+
+networks:
+  formflow:
+    driver: bridge
+
+volumes:
+  pgdata:
