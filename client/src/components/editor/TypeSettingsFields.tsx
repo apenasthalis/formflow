@@ -23,6 +23,7 @@ import {
   QUESTION_TYPE_LABEL,
 } from '@/utils/questions';
 import { QUESTION_TYPES, type Question, type QuestionSettings, type QuestionType } from '@/types';
+import { cn } from '@/lib/utils';
 
 /**
  * Campos de configuração que dependem do tipo da pergunta.
@@ -388,16 +389,25 @@ export function QuestionTypeSelect({
   value,
   onChange,
   disabled,
+  className,
 }: {
   value: QuestionType;
   onChange: (type: QuestionType) => void;
   disabled?: boolean;
+  /** Ajuste para o uso compacto na lista de perguntas. */
+  className?: string;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled} className="gap-2">
-          {QUESTION_TYPE_LABEL[value]}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          className={cn('gap-2', className)}
+          aria-label={`Tipo da pergunta: ${QUESTION_TYPE_LABEL[value]}`}
+        >
+          <span className="min-w-0 truncate">{QUESTION_TYPE_LABEL[value]}</span>
           <ChevronDown className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>

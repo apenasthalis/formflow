@@ -105,7 +105,9 @@ export function FormEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Question | null>(null);
-  const [pendingType, setPendingType] = useState<QuestionType | null>(null);
+  const [pendingType, setPendingType] = useState<{ questionId: string; type: QuestionType } | null>(
+    null,
+  );
 
   const form = query.data?.form;
 
@@ -411,14 +413,12 @@ export function FormEditorPage() {
    * pelas padrão do novo tipo. Enunciado, descrição e obrigatoriedade ficam.
    */
   const confirmTypeChange = () => {
-    const next = pendingType;
-    if (!next || !selected) {
-      setPendingType(null);
-      return;
-    }
+    const request = pendingType;
+    const question = form?.questions.find((item) => item.id === request?.questionId) ?? null;
     setPendingType(null);
-    updateQuestion(selected, { type: next, settings: defaultSettingsFor(next) });
-    toast.success(`Tipo alterado para ${QUESTION_TYPE_LABEL[next]}.`);
+    if (!request || !question || question.type === request.type) return;
+    updateQuestion(question, { type: request.type, settings: defaultSettingsFor(request.type) });
+    toast.success(`Tipo alterado para ${QUESTION_TYPE_LABEL[request.type]}.`);
   };
 
   // Foca o enunciado assim que a pergunta recién-criada entra no editor.
@@ -471,6 +471,9 @@ export function FormEditorPage() {
   }
 
   const selected = form.questions.find((question) => question.id === selectedId) ?? null;
+  /** Pergunta que a troca de tipo afeta, seja vinda da lista ou do editor. */
+  const typeTarget =
+    pendingType === null ? null : (form.questions.find((q) => q.id === pendingType.questionId) ?? null);
   const publicUrl = `${window.location.origin}/f/${form.slug}`;
 
   return (
@@ -508,6 +511,7 @@ export function FormEditorPage() {
                 if (question) setPendingDelete(question);
               }}
               onMove={handleMove}
+              onChangeType={(questionId, type) => setPendingType({ questionId, type })}
             />
           </div>
         </div>
@@ -557,7 +561,7 @@ export function FormEditorPage() {
                     <h2 className="text-sm font-semibold">Opções da pergunta</h2>
                     <QuestionTypeSelect
                       value={selected.type}
-                      onChange={(type) => setPendingType(type)}
+                      onChange={(type) => setPendingType({ questionId: selected.id, type })}
                     />
                   </div>
                   <TypeSettingsFields
@@ -677,12 +681,12 @@ export function FormEditorPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Alterar o tipo da pergunta?</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingType && selected ? (
+              {typeTarget && pendingType ? (
                 <>
-                  A pergunta passa de <strong>{QUESTION_TYPE_LABEL[selected.type]}</strong> para{' '}
-                  <strong>{QUESTION_TYPE_LABEL[pendingType]}</strong>. As opções configuradas para o
-                  tipo atual são substituídas pelas padrão do novo tipo — enunciado, descrição e
-                  obrigatoriedade são mantidos.
+                  A pergunta passa de <strong>{QUESTION_TYPE_LABEL[typeTarget.type]}</strong> para{' '}
+                  <strong>{QUESTION_TYPE_LABEL[pendingType.type]}</strong>. As opções configuradas
+                  para o tipo atual são substituídas pelas padrão do novo tipo — enunciado,
+                  descrição e obrigatoriedade são mantidos.
                 </>
               ) : null}
             </AlertDialogDescription>

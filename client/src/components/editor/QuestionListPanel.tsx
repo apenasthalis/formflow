@@ -13,6 +13,7 @@ import {
 import { QUESTION_TYPES, type Question, type QuestionType } from '@/types';
 import { QUESTION_TYPE_LABEL } from '@/utils/questions';
 import { cn } from '@/lib/utils';
+import { QuestionTypeSelect } from './TypeSettingsFields';
 
 type QuestionListPanelProps = {
   questions: Question[];
@@ -22,6 +23,7 @@ type QuestionListPanelProps = {
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
+  onChangeType: (id: string, type: QuestionType) => void;
 };
 
 export function QuestionListPanel({
@@ -32,6 +34,7 @@ export function QuestionListPanel({
   onDuplicate,
   onDelete,
   onMove,
+  onChangeType,
 }: QuestionListPanelProps) {
   return (
     <div className="flex h-full flex-col bg-background">
@@ -47,14 +50,14 @@ export function QuestionListPanel({
             <li key={question.id}>
               <div
                 className={cn(
-                  'group relative rounded-lg border transition-colors',
-                  selected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent',
+                  'rounded-lg border transition-colors',
+                  selected ? 'border-primary bg-primary/5' : 'border-input/60 hover:bg-accent/50',
                 )}
               >
                 <button
                   type="button"
                   onClick={() => onSelect(question.id)}
-                  className="w-full rounded-lg px-3 py-2.5 pr-20 text-left outline-offset-2"
+                  className="w-full rounded-t-lg px-3 pt-2.5 text-left outline-offset-2"
                   aria-current={selected}
                 >
                   <span className="flex items-center gap-2">
@@ -64,18 +67,31 @@ export function QuestionListPanel({
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">
                       {question.title || 'Pergunta sem título'}
                     </span>
-                  </span>
-                  <span className="mt-1 flex items-center gap-1.5 pl-6 text-xs text-muted-foreground">
-                    {QUESTION_TYPE_LABEL[question.type]}
-                    {question.required ? <span className="text-primary">• obrigatória</span> : null}
+                    {question.required ? (
+                      <span
+                        className="shrink-0 text-xs font-medium text-primary"
+                        title="Obrigatória"
+                      >
+                        obrigatória
+                      </span>
+                    ) : null}
                   </span>
                 </button>
 
-                <div className="absolute right-1.5 top-1.5 hidden items-center gap-0.5 group-hover:flex focus-within:flex">
+                {/* Ações sempre visíveis, em uma linha própria: assim não
+                    sobrescrevem o enunciado e dá para enxergar sem passar o
+                    mouse em cima. */}
+                <div className="flex items-center gap-1 px-2 pb-2 pt-1">
+                  <QuestionTypeSelect
+                    value={question.type}
+                    onChange={(type) => onChangeType(question.id, type)}
+                    className="h-7 min-w-0 flex-1 justify-start gap-1 px-2 text-xs"
+                  />
+
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
                     aria-label="Mover para cima"
                     disabled={index === 0}
                     onClick={() => onMove(question.id, 'up')}
@@ -83,9 +99,9 @@ export function QuestionListPanel({
                     <ChevronUp className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
                     aria-label="Mover para baixo"
                     disabled={index === questions.length - 1}
                     onClick={() => onMove(question.id, 'down')}
@@ -93,18 +109,18 @@ export function QuestionListPanel({
                     <ChevronDown className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
                     aria-label="Duplicar pergunta"
                     onClick={() => onDuplicate(question.id)}
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:border-destructive hover:text-destructive"
                     aria-label="Excluir pergunta"
                     onClick={() => onDelete(question.id)}
                   >
