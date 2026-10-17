@@ -370,6 +370,12 @@ Respostas inválidas retornam `422` com o mapa de erros por pergunta:
 Todas permitem: enunciado, descrição, obrigatoriedade, posição, ordem na
 estrutura do formulário e mensagem de erro personalizada.
 
+O tipo pode ser trocado a qualquer momento em “Opções da pergunta”. Como as
+configurações são específicas do tipo, a troca é confirmada e reinicia apenas
+elas com os padrões do novo tipo — enunciado, descrição e obrigatoriedade
+continuam. `PATCH /questions/:id` aceita a troca; sem `settings`, o novo tipo
+entra com as configurações padrão em vez de recusar o payload do tipo antigo.
+
 O tipo `EMAIL` renderiza um `input[type=email]` na página pública e valida o
 formato antes de salvar: o cliente mostra “Informe um e-mail válido.” e o
 servidor recusa a submissão com `422`, de modo que uma resposta inválida nunca
@@ -418,13 +424,13 @@ são gravadas em uma única transação — ou tudo é salvo, ou nada.
 
 ## Testes
 
-43 testes de integração contra um PostgreSQL real (`Vitest` + `Supertest`),
+44 testes de integração contra um PostgreSQL real (`Vitest` + `Supertest`),
 cobrindo os fluxos críticos:
 
 | Arquivo | Cobertura |
 | --- | --- |
 | `server/tests/auth.test.ts` | login válido/inválido, sessão, hash, rotas protegidas |
-| `server/tests/forms.test.ts` | CRUD, slug único, reordenação, duplicação, publicação, versionamento, slug preservado na publicação, isolamento entre administradores |
+| `server/tests/forms.test.ts` | CRUD, slug único, reordenação, duplicação, troca de tipo, publicação, versionamento, slug preservado na publicação, isolamento entre administradores |
 | `server/tests/submissions.test.ts` | validação por tipo (incluindo e-mail), obrigatoriedade, idempotência, concorrência, integridade da versão, link estável |
 | `server/tests/results.test.ts` | agregados, distribuição, média, busca, paginação, CSV, exclusão em cascata |
 

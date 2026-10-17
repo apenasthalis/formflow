@@ -15,7 +15,7 @@ import {
   resequencePositions,
   unpublishForm,
 } from '../services/forms.service.js';
-import { generateKey, normalizeSettings } from '../utils/questions.js';
+import { defaultSettingsFor, generateKey, normalizeSettings } from '../utils/questions.js';
 import { questionPayloadSchema, questionUpdateSchema } from '../schemas/question.js';
 import {
   exportSubmissionsCsv,
@@ -434,10 +434,15 @@ questionsRouter.patch('/:id', async (req, res, next) => {
 
     const payload = questionUpdateSchema.parse(req.body);
     const type = payload.type ?? question.type;
+    // As configurações são específicas do tipo. Ao trocar o tipo sem mandá-las
+    // (API), o novo tipo entra com as configurações padrão em vez de recusar
+    // um payload que era válido para o tipo anterior.
     const settings =
       payload.settings !== undefined
         ? normalizeSettings(type, payload.settings)
-        : normalizeSettings(type, question.settings as Record<string, unknown>);
+        : payload.type !== undefined && payload.type !== question.type
+          ? normalizeSettings(type, defaultSettingsFor(type).settings)
+          : normalizeSettings(type, question.settings as Record<string, unknown>);
 
     const updated = await prisma.question.update({
       where: { id: question.id },

@@ -167,6 +167,51 @@ describe('Formulários, perguntas e publicação', () => {
     expect(depoisDaTerceira).toBe(depoisDaPrimeira + 1);
   });
 
+  it('troca o tipo da pergunta e reinicia as configurações do novo tipo', async () => {
+    const form = await createForm(user.cookie, 'Troca de tipo');
+    const pergunta = await addQuestion(user.cookie, form.id, {
+      title: 'Escolha uma',
+      type: 'SHORT_TEXT',
+      settings: { placeholder: 'digite aqui', maxLength: 120 },
+    });
+
+    // Com settings: o que foi enviado vale.
+    const comSettings = await client
+      .patch(`/api/questions/${pergunta.id}`)
+      .send({
+        type: 'SINGLE_CHOICE',
+        settings: {
+          options: [
+            { value: 'a', label: 'A' },
+            { value: 'b', label: 'B' },
+          ],
+          allowOther: true,
+          otherLabel: 'Outro',
+        },
+      })
+      .expect(200);
+    expect(comSettings.body.question.type).toBe('SINGLE_CHOICE');
+    expect(comSettings.body.question.settings.options).toHaveLength(2);
+
+    // Sem settings: o novo tipo entra com as configurações padrão, em vez de
+    // recusar um payload escrito para o tipo anterior.
+    const semSettings = await client
+      .patch(`/api/questions/${pergunta.id}`)
+      .send({ type: 'YES_NO' })
+      .expect(200);
+    expect(semSettings.body.question.type).toBe('YES_NO');
+    expect(semSettings.body.question.settings).toEqual({ yesLabel: 'Sim', noLabel: 'Não' });
+
+    // Enunciado e obrigatoriedade continuam como estavam.
+    expect(semSettings.body.question.title).toBe('Escolha uma');
+
+    // Settings inválidas para o novo tipo continuam sendo recusadas.
+    await client
+      .patch(`/api/questions/${pergunta.id}`)
+      .send({ type: 'SCALE', settings: { min: 10, max: 2 } })
+      .expect(422);
+  });
+
   it('mantém o slug definido no editor ao publicar', async () => {
     const form = await createForm(user.cookie, 'Link definitivo');
     await addQuestion(user.cookie, form.id, { title: 'Pergunta' });

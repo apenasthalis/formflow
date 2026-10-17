@@ -39,7 +39,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { QuestionListPanel, MobileQuestionStrip } from '@/components/editor/QuestionListPanel';
-import { Field, ToggleRow, TypeSettingsFields } from '@/components/editor/TypeSettingsFields';
+import {
+  Field,
+  QuestionTypeSelect,
+  ToggleRow,
+  TypeSettingsFields,
+} from '@/components/editor/TypeSettingsFields';
 import { FormRunner } from '@/components/runner/FormRunner';
 import { toast } from '@/components/ui/toast';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
@@ -100,6 +105,7 @@ export function FormEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Question | null>(null);
+  const [pendingType, setPendingType] = useState<QuestionType | null>(null);
 
   const form = query.data?.form;
 
@@ -400,6 +406,21 @@ export function FormEditorPage() {
     publishMutation.mutate('unpublish');
   };
 
+  /**
+   * Trocar o tipo substitui as configurações — alternativas, rótulos, escala —
+   * pelas padrão do novo tipo. Enunciado, descrição e obrigatoriedade ficam.
+   */
+  const confirmTypeChange = () => {
+    const next = pendingType;
+    if (!next || !selected) {
+      setPendingType(null);
+      return;
+    }
+    setPendingType(null);
+    updateQuestion(selected, { type: next, settings: defaultSettingsFor(next) });
+    toast.success(`Tipo alterado para ${QUESTION_TYPE_LABEL[next]}.`);
+  };
+
   // Foca o enunciado assim que a pergunta recién-criada entra no editor.
   useEffect(() => {
     if (!focusTitleFor || selectedId !== focusTitleFor) return;
@@ -532,7 +553,13 @@ export function FormEditorPage() {
                 </div>
 
                 <div className="rounded-xl border bg-card p-5">
-                  <h2 className="mb-4 text-sm font-semibold">Opções da pergunta</h2>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-sm font-semibold">Opções da pergunta</h2>
+                    <QuestionTypeSelect
+                      value={selected.type}
+                      onChange={(type) => setPendingType(type)}
+                    />
+                  </div>
                   <TypeSettingsFields
                     question={selected}
                     onChange={(updater) => updateQuestionSettings(selected, updater)}
@@ -639,6 +666,33 @@ export function FormEditorPage() {
         onUpdate={updateForm}
         onFlush={() => scheduleSave.flush()}
       />
+
+      <AlertDialog
+        open={pendingType !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingType(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar o tipo da pergunta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingType && selected ? (
+                <>
+                  A pergunta passa de <strong>{QUESTION_TYPE_LABEL[selected.type]}</strong> para{' '}
+                  <strong>{QUESTION_TYPE_LABEL[pendingType]}</strong>. As opções configuradas para o
+                  tipo atual são substituídas pelas padrão do novo tipo — enunciado, descrição e
+                  obrigatoriedade são mantidos.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTypeChange}>Alterar tipo</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={Boolean(pendingDelete)}

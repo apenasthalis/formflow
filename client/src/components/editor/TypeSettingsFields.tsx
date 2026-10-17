@@ -1,8 +1,16 @@
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   asChoiceSettings,
   asRatingSettings,
@@ -11,8 +19,10 @@ import {
   asYesNoSettings,
   EMAIL_MAX_LENGTH,
   makeOptionValue,
+  QUESTION_TYPE_DESCRIPTION,
+  QUESTION_TYPE_LABEL,
 } from '@/utils/questions';
-import type { Question, QuestionSettings } from '@/types';
+import { QUESTION_TYPES, type Question, type QuestionSettings, type QuestionType } from '@/types';
 
 /**
  * Campos de configuração que dependem do tipo da pergunta.
@@ -367,6 +377,49 @@ export function TypeSettingsFields({
   }
 
   return null;
+}
+
+/**
+ * Troca o tipo da pergunta. As configurações são específicas do tipo, então o
+ * editor pede confirmação e reinicia as opções com os padrões do novo tipo —
+ * enunciado, descrição e obrigatoriedade continuam como estão.
+ */
+export function QuestionTypeSelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: QuestionType;
+  onChange: (type: QuestionType) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={disabled} className="gap-2">
+          {QUESTION_TYPE_LABEL[value]}
+          <ChevronDown className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel>Tipo de pergunta</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {QUESTION_TYPES.map((type) => (
+          <DropdownMenuItem
+            key={type}
+            disabled={type === value}
+            onSelect={() => onChange(type)}
+            className="flex-col items-start gap-0.5"
+          >
+            <span className="font-medium">{QUESTION_TYPE_LABEL[type]}</span>
+            <span className="text-xs text-muted-foreground">
+              {QUESTION_TYPE_DESCRIPTION[type]}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export function Field({
