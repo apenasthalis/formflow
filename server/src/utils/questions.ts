@@ -13,6 +13,7 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   [QuestionType.SHORT_TEXT]: 'Texto curto',
   [QuestionType.LONG_TEXT]: 'Texto longo',
   [QuestionType.EMAIL]: 'E-mail',
+  [QuestionType.NUMBER]: 'Número',
   [QuestionType.SINGLE_CHOICE]: 'Seleção única',
   [QuestionType.MULTIPLE_CHOICE]: 'Múltipla escolha',
   [QuestionType.YES_NO]: 'Sim ou não',
@@ -24,11 +25,10 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 export function defaultSettingsFor(type: QuestionType): QuestionSettingsInput {
   switch (type) {
     case QuestionType.SHORT_TEXT:
-      return { type, settings: { placeholder: '', maxLength: 280 } };
     case QuestionType.LONG_TEXT:
-      return { type, settings: { placeholder: '', maxLength: 2000 } };
     case QuestionType.EMAIL:
-      return { type, settings: { placeholder: '', maxLength: 180 } };
+    case QuestionType.NUMBER:
+      return { type, settings: { placeholder: '' } };
     case QuestionType.SINGLE_CHOICE:
     case QuestionType.MULTIPLE_CHOICE:
       return {
@@ -50,8 +50,26 @@ export function defaultSettingsFor(type: QuestionType): QuestionSettingsInput {
     case QuestionType.RATING:
       return { type, settings: { max: 5, lowLabel: '', highLabel: '' } };
     default:
-      return { type: QuestionType.SHORT_TEXT, settings: { placeholder: '', maxLength: 280 } };
+      return { type: QuestionType.SHORT_TEXT, settings: { placeholder: '' } };
   }
+}
+
+/**
+ * Interpreta uma resposta numérica escrita à moda brasileira.
+ * Aceita `1.234,56`, `1234.56`, `-3,5` e `42`; devolve `null` para qualquer
+ * coisa que não seja número (letras, símbolos, vírgulas fora do lugar).
+ */
+export function parseNumericAnswer(value: string): number | null {
+  const compact = value.trim().replace(/\s/g, '');
+  if (!/^[+-]?\d+([.,]\d+)*$/.test(compact)) return null;
+
+  // Com vírgula, ela é o separador decimal e o ponto é separador de milhar.
+  const normalized = compact.includes(',')
+    ? compact.replace(/\./g, '').replace(',', '.')
+    : compact;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function normalizeSettings(type: QuestionType, settings: unknown) {

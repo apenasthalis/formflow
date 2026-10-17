@@ -4,7 +4,7 @@ import { CornerDownLeft, RotateCcw } from 'lucide-react';
 import { QuestionField } from './QuestionField';
 import { Spinner } from '@/components/ui/states';
 import { Button } from '@/components/ui/button';
-import { OTHER_OPTION_VALUE, isValidEmail } from '@/utils/questions';
+import { OTHER_OPTION_VALUE, isValidEmail, parseNumericAnswer } from '@/utils/questions';
 import { createIdempotencyKey } from '@/utils/idempotency';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { cn } from '@/lib/utils';
@@ -100,6 +100,7 @@ export function FormRunner({ form, mode = 'live', onSubmit }: FormRunnerProps) {
       case 'SHORT_TEXT':
       case 'LONG_TEXT':
       case 'EMAIL':
+      case 'NUMBER':
         return (answer.text ?? '').trim() !== '';
       case 'SINGLE_CHOICE':
       case 'YES_NO':
@@ -121,6 +122,9 @@ export function FormRunner({ form, mode = 'live', onSubmit }: FormRunnerProps) {
       if (answered) {
         if (question.type === 'EMAIL' && !isValidEmail(answer?.text ?? '')) {
           return 'Informe um e-mail válido.';
+        }
+        if (question.type === 'NUMBER' && parseNumericAnswer(answer?.text ?? '') === null) {
+          return 'Informe apenas números.';
         }
         if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
           const usesOther =

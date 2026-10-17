@@ -4,6 +4,7 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   SHORT_TEXT: 'Texto curto',
   LONG_TEXT: 'Texto longo',
   EMAIL: 'E-mail',
+  NUMBER: 'Número',
   SINGLE_CHOICE: 'Seleção única',
   MULTIPLE_CHOICE: 'Múltipla escolha',
   YES_NO: 'Sim ou não',
@@ -15,6 +16,7 @@ export const QUESTION_TYPE_DESCRIPTION: Record<QuestionType, string> = {
   SHORT_TEXT: 'Uma linha de resposta (nome, cidade).',
   LONG_TEXT: 'Resposta aberta com várias linhas.',
   EMAIL: 'Endereço de e-mail, validado antes de enviar.',
+  NUMBER: 'Resposta só com números, com vírgula ou ponto decimal.',
   SINGLE_CHOICE: 'Uma única alternativa, com avanço automático.',
   MULTIPLE_CHOICE: 'Várias alternativas selecionáveis antes de continuar.',
   YES_NO: 'Resposta binária com rótulos personalizáveis.',
@@ -22,15 +24,31 @@ export const QUESTION_TYPE_DESCRIPTION: Record<QuestionType, string> = {
   RATING: 'Nota por estrelas ou escala equivalente.',
 };
 
-/** Limite padrão de caracteres de uma resposta de e-mail (espelha o servidor). */
-export const EMAIL_MAX_LENGTH = 180;
+/** Formato de e-mail aceito pelo formulário público e pelo servidor. */
+export function isValidEmail(value: string): boolean {
+  return EMAIL_PATTERN.test(value.trim());
+}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
-/** Formato de e-mail aceito pelo formulário público e pelo servidor. */
-export function isValidEmail(value: string): boolean {
-  const email = value.trim();
-  return email.length > 0 && email.length <= EMAIL_MAX_LENGTH && EMAIL_PATTERN.test(email);
+const NUMERIC_PATTERN = /^[+-]?\d+([.,]\d+)*$/;
+
+/**
+ * Interpreta uma resposta numérica escrita à moda brasileira.
+ * Aceita `1.234,56`, `1234.56`, `-3,5` e `42`; devolve `null` para qualquer
+ * coisa que não seja número. Espelha a validação do servidor.
+ */
+export function parseNumericAnswer(value: string): number | null {
+  const compact = value.trim().replace(/\s/g, '');
+  if (!NUMERIC_PATTERN.test(compact)) return null;
+
+  // Com vírgula, ela é o separador decimal e o ponto é separador de milhar.
+  const normalized = compact.includes(',')
+    ? compact.replace(/\./g, '').replace(',', '.')
+    : compact;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export const FORM_STATUS_LABEL = {
@@ -51,11 +69,10 @@ export function makeOptionValue(): string {
 export function defaultSettingsFor(type: QuestionType): QuestionSettings {
   switch (type) {
     case 'SHORT_TEXT':
-      return { placeholder: '', maxLength: 280 };
     case 'LONG_TEXT':
-      return { placeholder: '', maxLength: 2000 };
     case 'EMAIL':
-      return { placeholder: '', maxLength: EMAIL_MAX_LENGTH };
+    case 'NUMBER':
+      return { placeholder: '' };
     case 'SINGLE_CHOICE':
     case 'MULTIPLE_CHOICE':
       return {
@@ -74,7 +91,7 @@ export function defaultSettingsFor(type: QuestionType): QuestionSettings {
     case 'RATING':
       return { max: 5, lowLabel: '', highLabel: '' };
     default:
-      return { placeholder: '', maxLength: 280 };
+      return { placeholder: '' };
   }
 }
 

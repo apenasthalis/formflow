@@ -2,6 +2,7 @@ import { Prisma, QuestionType, SubmissionStatus } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { emailAnswerSchema } from '../schemas/question.js';
+import { parseNumericAnswer } from '../utils/questions.js';
 import type { FormSnapshot, FormVersionSnapshot } from '../schemas/snapshot.js';
 
 export type AnswerInput = {
@@ -37,10 +38,6 @@ function allowOther(question: SnapshotQuestion): boolean {
   return Boolean((question.settings as { allowOther?: boolean })?.allowOther);
 }
 
-function clampText(value: string, max: number): string {
-  return value.trim().slice(0, max);
-}
-
 /**
  * Valida a submissão inteira contra o snapshot da versão publicada.
  * Retorna todos os erros de uma vez para que o participante possa corrigir.
@@ -71,7 +68,6 @@ export function validateSubmission(
 
 function validateAnswer(question: SnapshotQuestion, answer: AnswerInput | undefined): string | null {
   const settings = question.settings as {
-    maxLength?: number;
     min?: number;
     max?: number;
   };
@@ -84,16 +80,22 @@ function validateAnswer(question: SnapshotQuestion, answer: AnswerInput | undefi
   switch (question.type) {
     case QuestionType.SHORT_TEXT:
     case QuestionType.LONG_TEXT: {
-      const text = clampText(String(answer?.text ?? ''), settings.maxLength ?? 5000);
+      // Texto livre: sem limite de caracteres, só a obrigatoriedade.
+      const text = answer?.text?.trim() ?? '';
       if (!text) return question.required ? 'Esta pergunta é obrigatória.' : null;
       return null;
     }
 
     case QuestionType.EMAIL: {
-      const text = clampText(String(answer?.text ?? ''), settings.maxLength ?? 180);
+      const text = answer?.text?.trim() ?? '';
       if (!text) return question.required ? 'Esta pergunta é obrigatória.' : null;
-      // O formato é conferido no texto já normalizado, que é o que será gravado.
       return emailAnswerSchema.safeParse(text).success ? null : 'Informe um e-mail válido.';
+    }
+
+    case QuestionType.NUMBER: {
+      const text = answer?.text?.trim() ?? '';
+      if (!text) return question.required ? 'Esta pergunta é obrigatória.' : null;
+      return parseNumericAnswer(text) === null ? 'Informe apenas números.' : null;
     }
 
     case QuestionType.SINGLE_CHOICE: {
@@ -163,6 +165,8 @@ function normalizeAnswer(question: SnapshotQuestion, answer: AnswerInput) {
     case QuestionType.SHORT_TEXT:
     case QuestionType.LONG_TEXT:
     case QuestionType.EMAIL:
+    case QuestionType.NUMBER:
+      // O texto é guardado como foi digitado, sem truncar.
       return text ? { answerText: text, answerJson: undefined } : null;
 
     case QuestionType.SINGLE_CHOICE: {

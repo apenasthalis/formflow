@@ -17,7 +17,6 @@ import {
   asScaleSettings,
   asTextSettings,
   asYesNoSettings,
-  EMAIL_MAX_LENGTH,
   makeOptionValue,
   QUESTION_TYPE_DESCRIPTION,
   QUESTION_TYPE_LABEL,
@@ -40,51 +39,36 @@ export function TypeSettingsFields({
   onChange: (updater: (settings: QuestionSettings) => QuestionSettings) => void;
   disabled?: boolean;
 }) {
-  if (question.type === 'SHORT_TEXT' || question.type === 'LONG_TEXT' || question.type === 'EMAIL') {
+  if (
+    question.type === 'SHORT_TEXT' ||
+    question.type === 'LONG_TEXT' ||
+    question.type === 'EMAIL' ||
+    question.type === 'NUMBER'
+  ) {
     const settings = asTextSettings(question.settings);
-    const isEmail = question.type === 'EMAIL';
-    const minLengthLimit = isEmail ? 3 : 1;
-    const maxLengthLimit = isEmail ? EMAIL_MAX_LENGTH : 5000;
+    const exemplo =
+      question.type === 'EMAIL'
+        ? 'voce@exemplo.com'
+        : question.type === 'NUMBER'
+          ? 'Ex.: 1.234,56'
+          : 'Ex.: Digite sua resposta';
+    const dica =
+      question.type === 'NUMBER'
+        ? 'Aceita números inteiros e decimais, com vírgula ou ponto.'
+        : undefined;
+
     return (
-      <div className="space-y-4">
-        <Field
-          label="Texto de exemplo"
-          htmlFor="placeholder"
-          hint={isEmail ? 'Aparece dentro do campo enquanto ele está vazio.' : undefined}
-        >
-          <Input
-            id="placeholder"
-            value={settings.placeholder}
-            disabled={disabled}
-            placeholder={isEmail ? 'voce@exemplo.com' : 'Ex.: Digite sua resposta'}
-            onChange={(event) =>
-              onChange((previous) => ({ ...asTextSettings(previous), placeholder: event.target.value }))
-            }
-          />
-        </Field>
-        <Field
-          label="Limite de caracteres"
-          htmlFor="maxLength"
-          hint={isEmail ? `Máximo de ${EMAIL_MAX_LENGTH} caracteres.` : undefined}
-        >
-          <Input
-            id="maxLength"
-            type="number"
-            min={minLengthLimit}
-            max={maxLengthLimit}
-            value={settings.maxLength}
-            disabled={disabled}
-            onChange={(event) => {
-              const fallback = isEmail ? EMAIL_MAX_LENGTH : 1;
-              const digitado = Number(event.target.value) || fallback;
-              onChange((previous) => ({
-                ...asTextSettings(previous),
-                maxLength: Math.min(maxLengthLimit, Math.max(minLengthLimit, digitado)),
-              }));
-            }}
-          />
-        </Field>
-      </div>
+      <Field label="Texto de exemplo" htmlFor="placeholder" hint={dica}>
+        <Input
+          id="placeholder"
+          value={settings.placeholder}
+          disabled={disabled}
+          placeholder={exemplo}
+          onChange={(event) =>
+            onChange((previous) => ({ ...asTextSettings(previous), placeholder: event.target.value }))
+          }
+        />
+      </Field>
     );
   }
 

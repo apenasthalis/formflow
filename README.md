@@ -358,9 +358,10 @@ Respostas inválidas retornam `422` com o mapa de erros por pergunta:
 
 | Tipo | Resposta armazenada | Configurações |
 | --- | --- | --- |
-| `SHORT_TEXT` | `answer_text` | placeholder, limite de caracteres |
-| `LONG_TEXT` | `answer_text` | placeholder, limite de caracteres |
-| `EMAIL` | `answer_text` | placeholder, limite de caracteres (até 180) |
+| `SHORT_TEXT` | `answer_text` | placeholder |
+| `LONG_TEXT` | `answer_text` | placeholder |
+| `EMAIL` | `answer_text` | placeholder (formato do e-mail é validado) |
+| `NUMBER` | `answer_text` | placeholder (aceita vírgula ou ponto decimal) |
 | `SINGLE_CHOICE` | `answer_json: { value }` | alternativas, “outro”, reordenar |
 | `MULTIPLE_CHOICE` | `answer_json: { selected[] }` | alternativas, “outro”, reordenar |
 | `YES_NO` | `answer_json: { value }` | rótulos de “sim” e “não” |
@@ -370,16 +371,23 @@ Respostas inválidas retornam `422` com o mapa de erros por pergunta:
 Todas permitem: enunciado, descrição, obrigatoriedade, posição, ordem na
 estrutura do formulário e mensagem de erro personalizada.
 
-O tipo pode ser trocado a qualquer momento em “Opções da pergunta”. Como as
-configurações são específicas do tipo, a troca é confirmada e reinicia apenas
-elas com os padrões do novo tipo — enunciado, descrição e obrigatoriedade
-continuam. `PATCH /questions/:id` aceita a troca; sem `settings`, o novo tipo
-entra com as configurações padrão em vez de recusar o payload do tipo antigo.
+Campos de texto **não têm limite de caracteres**: o navegador não aplica
+`maxlength` e o servidor não trunca. A única regra é não enviar resposta vazia,
+que só bloqueia quando a pergunta é obrigatória. O teto de 256 kb do corpo da
+requisição segue valendo como limite de transporte.
+
+O tipo pode ser trocado a qualquer momento em “Opções da pergunta” (e na lista
+de perguntas, no botão ao lado de subir/descer). Como as configurações são
+específicas do tipo, a troca é confirmada e reinicia apenas elas com os padrões
+do novo tipo — enunciado, descrição e obrigatoriedade continuam.
+`PATCH /questions/:id` aceita a troca; sem `settings`, o novo tipo entra com as
+configurações padrão em vez de recusar o payload do tipo antigo.
 
 O tipo `EMAIL` renderiza um `input[type=email]` na página pública e valida o
 formato antes de salvar: o cliente mostra “Informe um e-mail válido.” e o
 servidor recusa a submissão com `422`, de modo que uma resposta inválida nunca
-chega ao banco.
+chega ao banco. O tipo `NUMBER` aceita `42`, `-3`, `1.234`, `1.234,56` e
+`0,5`, e rejeita qualquer outra coisa com “Informe apenas números.”
 
 ---
 
@@ -424,14 +432,14 @@ são gravadas em uma única transação — ou tudo é salvo, ou nada.
 
 ## Testes
 
-44 testes de integração contra um PostgreSQL real (`Vitest` + `Supertest`),
+46 testes de integração contra um PostgreSQL real (`Vitest` + `Supertest`),
 cobrindo os fluxos críticos:
 
 | Arquivo | Cobertura |
 | --- | --- |
 | `server/tests/auth.test.ts` | login válido/inválido, sessão, hash, rotas protegidas |
 | `server/tests/forms.test.ts` | CRUD, slug único, reordenação, duplicação, troca de tipo, publicação, versionamento, slug preservado na publicação, isolamento entre administradores |
-| `server/tests/submissions.test.ts` | validação por tipo (incluindo e-mail), obrigatoriedade, idempotência, concorrência, integridade da versão, link estável |
+| `server/tests/submissions.test.ts` | validação por tipo (texto livre, e-mail, número), obrigatoriedade, idempotência, concorrência, integridade da versão, link estável |
 | `server/tests/results.test.ts` | agregados, distribuição, média, busca, paginação, CSV, exclusão em cascata |
 
 Executar:
@@ -458,7 +466,10 @@ segura e sustentável:
    rede sem exigir cookie adicional na página pública.
 4. **Envelope único de erro** e validação Zod compartilhada entre rotas.
 5. **Salvamento automático com agrupamento**: o editor envia 600 ms após a última
-   alteração, unindo campos editados em sequência rápida.
+   alteração, unindo campos editados em sequência rápida. As notificações do
+   react-query saem no mesmo tick (`notifyManager.setScheduler`), senão o React
+   restauraria o valor anterior do campo ao fim de cada tecla e o cursor
+   voltaria para o fim da frase — o que também quebrava acentuação por IME.
 6. **Nginx como único ponto de entrada**: mesma configuração para dev e produção,
    sem duplicar regras de proxy.
 7. **Perguntas sem enunciado só são bloqueadas na publicação**, permitindo criar e

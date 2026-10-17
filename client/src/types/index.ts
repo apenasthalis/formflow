@@ -2,6 +2,7 @@ export const QUESTION_TYPES = [
   'SHORT_TEXT',
   'LONG_TEXT',
   'EMAIL',
+  'NUMBER',
   'SINGLE_CHOICE',
   'MULTIPLE_CHOICE',
   'YES_NO',
@@ -18,7 +19,8 @@ export type SubmissionStatus = 'COMPLETED' | 'PARTIAL';
 
 export type ChoiceOption = { value: string; label: string };
 
-export type TextSettings = { placeholder: string; maxLength: number };
+/** Campos de texto livre: sem limite de caracteres, só o texto de exemplo. */
+export type TextSettings = { placeholder: string };
 export type ChoiceSettings = {
   options: ChoiceOption[];
   allowOther: boolean;

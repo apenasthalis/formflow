@@ -258,6 +258,65 @@ describe('Respostas públicas', () => {
     expect(resposta.answerText).toBe('Ana.Souza+contato@exemplo.com.br');
   });
 
+  it('aceita texto longo sem limite de caracteres e só recusa o vazio', async () => {
+    const form = await createForm(user.cookie, 'Texto livre');
+    await addQuestion(user.cookie, form.id, { title: 'Conte tudo', type: 'LONG_TEXT', required: true });
+    await publish(user.cookie, form.id);
+
+    const key = (await getPublicForm(form.slug)).questions[0]!.key;
+    const longa = 'PALAVRA '.repeat(3000).trim();
+
+    const resposta = await request(app)
+      .post(`/api/public/forms/${form.slug}/submissions`)
+      .send({ idempotencyKey: newIdempotencyKey(), answers: [{ questionKey: key, text: longa }] })
+      .expect(201);
+
+    const gravada = await prisma.answer.findFirstOrThrow({
+      where: { submissionId: resposta.body.submissionId },
+    });
+    expect(gravada.answerText).toHaveLength(longa.length);
+
+    // Espaço em branco continua contando como não respondida.
+    await request(app)
+      .post(`/api/public/forms/${form.slug}/submissions`)
+      .send({ idempotencyKey: newIdempotencyKey(), answers: [{ questionKey: key, text: '   ' }] })
+      .expect(422);
+  });
+
+  it('aceita apenas números na pergunta do tipo número', async () => {
+    const form = await createForm(user.cookie, 'Resposta numérica');
+    await addQuestion(user.cookie, form.id, {
+      title: 'Quanto você pagou?',
+      type: 'NUMBER',
+      required: true,
+    });
+    await publish(user.cookie, form.id);
+
+    const publica = await getPublicForm(form.slug);
+    expect(publica.questions[0]!.type).toBe('NUMBER');
+    const key = publica.questions[0]!.key;
+
+    for (const invalido of ['abc', '12 reais', '1,2,3', '3.4.5', '10%']) {
+      const recusa = await request(app)
+        .post(`/api/public/forms/${form.slug}/submissions`)
+        .send({ idempotencyKey: newIdempotencyKey(), answers: [{ questionKey: key, text: invalido }] })
+        .expect(422);
+      expect(recusa.body.error.details[key]).toMatch(/apenas números/i);
+    }
+
+    for (const valido of ['42', '-3', '1.234', '1.234,56', '0,5', '1 234,56']) {
+      const resposta = await request(app)
+        .post(`/api/public/forms/${form.slug}/submissions`)
+        .send({ idempotencyKey: newIdempotencyKey(), answers: [{ questionKey: key, text: valido }] })
+        .expect(201);
+      // O texto é gravado como foi digitado.
+      const gravada = await prisma.answer.findFirstOrThrow({
+        where: { submissionId: resposta.body.submissionId },
+      });
+      expect(gravada.answerText).toBe(valido);
+    }
+  });
+
   it('aceita pular perguntas opcionais', async () => {
     const response = await request(app)
       .post(`/api/public/forms/${slug}/submissions`)

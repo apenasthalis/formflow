@@ -14,7 +14,9 @@ publicRouter.use(publicLimiter);
 
 const answerSchema = z.object({
   questionKey: z.string().min(1).max(40),
-  text: z.string().max(5000).nullish(),
+  // Texto livre: sem limite de caracteres. O teto do payload (256 kb no
+  // express.json) é o único guard de transporte.
+  text: z.string().nullish(),
   value: z.union([z.string().max(200), z.number()]).nullish(),
   values: z.array(z.string().max(200)).max(50).nullish(),
 });

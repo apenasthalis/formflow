@@ -82,16 +82,27 @@ export function QuestionField({
   const otherText = answer?.text ?? '';
   const isOtherVisible = (settings as { allowOther?: boolean })?.allowOther ?? false;
 
-  if (question.type === 'SHORT_TEXT' || question.type === 'LONG_TEXT' || question.type === 'EMAIL') {
-    const text = settings as { placeholder: string; maxLength: number };
+  if (
+    question.type === 'SHORT_TEXT' ||
+    question.type === 'LONG_TEXT' ||
+    question.type === 'EMAIL' ||
+    question.type === 'NUMBER'
+  ) {
+    const text = settings as { placeholder: string };
     const isLong = question.type === 'LONG_TEXT';
     const isEmail = question.type === 'EMAIL';
+    const isNumber = question.type === 'NUMBER';
+    const exemplo = isEmail
+      ? 'voce@exemplo.com'
+      : isNumber
+        ? 'Ex.: 1.234,56'
+        : isLong
+          ? 'Digite sua resposta…'
+          : 'Sua resposta';
+    // Sem `maxLength`: o campo é livre e a única regra é não ficar vazio.
     const shared = {
       value: answer?.text ?? '',
-      placeholder:
-        text.placeholder ||
-        (isEmail ? 'voce@exemplo.com' : isLong ? 'Digite sua resposta…' : 'Sua resposta'),
-      maxLength: text.maxLength,
+      placeholder: text.placeholder || exemplo,
       disabled,
       onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         onChange({ questionKey: question.key, text: event.target.value }),
@@ -109,12 +120,12 @@ export function QuestionField({
         {...shared}
         ref={inputRef as React.RefObject<HTMLInputElement>}
         type={isEmail ? 'email' : 'text'}
-        inputMode={isEmail ? 'email' : undefined}
-        autoComplete={isEmail ? 'email' : undefined}
-        autoCapitalize={isEmail ? 'none' : undefined}
-        spellCheck={!isEmail}
-        aria-invalid={isEmail ? Boolean(error) : undefined}
-        className={cn(TEXT_INPUT_CLASS, isEmail && error && 'border-destructive')}
+        inputMode={isEmail ? 'email' : isNumber ? 'decimal' : undefined}
+        autoComplete={isEmail ? 'email' : isNumber ? 'off' : undefined}
+        autoCapitalize={isEmail || isNumber ? 'none' : undefined}
+        spellCheck={!isEmail && !isNumber}
+        aria-invalid={isEmail || isNumber ? Boolean(error) : undefined}
+        className={cn(TEXT_INPUT_CLASS, (isEmail || isNumber) && error && 'border-destructive')}
       />
     );
 

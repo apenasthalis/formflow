@@ -31,23 +31,24 @@ export const ratingSettingsSchema = z.object({
   highLabel: z.string().max(60).default(''),
 });
 
+/**
+ * Campos de texto livre: sem limite de caracteres. A única regra é não enviar
+ * resposta vazia, e ela vale apenas para perguntas obrigatórias.
+ */
 export const textSettingsSchema = z.object({
   placeholder: z.string().max(200).default(''),
-  maxLength: z.coerce.number().int().min(1).max(5000).default(280),
 });
 
-/** Um e-mail cabe em uma linha: o limite é menor que o do texto livre. */
-export const emailSettingsSchema = z.object({
-  placeholder: z.string().max(200).default(''),
-  maxLength: z.coerce.number().int().min(3).max(180).default(180),
-});
+export const emailSettingsSchema = textSettingsSchema;
+
+export const numberSettingsSchema = textSettingsSchema;
 
 /** Formato aceito para a resposta de uma pergunta do tipo e-mail. */
 export const emailAnswerSchema = z
   .string()
   .trim()
   .min(1, 'Informe um e-mail válido.')
-  .max(180, 'Informe um e-mail válido.')
+  .max(320, 'Informe um e-mail válido.')
   .email('Informe um e-mail válido.');
 
 export const choiceSettingsSchema = z.object({
@@ -64,6 +65,7 @@ export const questionSettingsSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal(QuestionType.SHORT_TEXT), settings: textSettingsSchema }),
   z.object({ type: z.literal(QuestionType.LONG_TEXT), settings: textSettingsSchema }),
   z.object({ type: z.literal(QuestionType.EMAIL), settings: emailSettingsSchema }),
+  z.object({ type: z.literal(QuestionType.NUMBER), settings: numberSettingsSchema }),
   z.object({ type: z.literal(QuestionType.SINGLE_CHOICE), settings: choiceSettingsSchema }),
   z.object({ type: z.literal(QuestionType.MULTIPLE_CHOICE), settings: choiceSettingsSchema }),
   z.object({ type: z.literal(QuestionType.YES_NO), settings: yesNoLabelsSchema }),
