@@ -49,7 +49,7 @@ authRouter.post('/login', loginLimiter, async (req, res, next) => {
     }
 
     await registerLoginAttempt(email, true, ip);
-    const { expiresAt } = await createSession(user.id, res);
+    const { expiresAt } = await createSession(user.id, req, res);
 
     await prisma.adminUser.update({
       where: { id: user.id },

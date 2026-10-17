@@ -3,27 +3,36 @@
 # Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
 # O que muda em relação ao compose base:
-#   - Nginx publica apenas 8080 (HTTPS). As portas 80/443 desta VPS belongem a
-#     outra aplicação, então `!override` substitui a lista do compose base em vez
-#     de somar a ela.
-#   - Nginx recebe a configuração com TLS e os certificados do certbot.
-#   - O backend sobe com cookies de sessão seguros, exigidos por HTTPS.
+#   - Nginx publica 443 (HTTPS no domínio) e 8080 (HTTP para acesso por IP).
+#     O compose base só publica 80, então `!override` substitui a lista em vez de
+#     somar a ela. A porta 80 pertence a outra aplicação desta VPS.
+#   - Nginx recebe os certificados do certbot (/etc/letsencrypt) e o webroot do
+#     desafio ACME (/var/www/certbot), montados somente-leitura.
+#   - O backend sobe com COOKIE_SECURE=auto, que marca `Secure` só nas
+#     requisições que chegam por TLS, preservando o login nas duas entradas.
 # ----------------------------------------------------------------------------
 
 services:
   nginx:
     ports: !override
+      - '443:443'
       - '8080:8080'
     volumes:
       - ./nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
-      # Certificados gerados no host por `certbot certonly`.
+      # Certificados gerados no host por `certbot certonly --webroot`.
       - /etc/letsencrypt:/etc/letsencrypt:ro
-    # O healthcheck do compose base usa HTTP na 80, que agora pertence a outra
-    # aplicação. Aqui o Nginx só escuta TLS na 8080, então a verificação passa
-    # por HTTPS. `--no-check-certificate` mantém o probe válido tanto com o
-    # certificado provisório quanto com o do Let's Encrypt.
+      # Webroot do desafio ACME. O Nginx só o monta por causa do volume acima;
+      # quem responde o desafio na 80 é a outra aplicação, apontando para o
+      # mesmo caminho no host.
+      - /opt/sources/certbot/www:/var/www/certbot:ro
+    # `host.docker.internal` é o gateway do host, usado no bloco default_server
+    # da 443 para encaminhar o acesso por IP à aplicação da porta 80.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    # O healthcheck usa a 8080 porque é a única entrada HTTP sem redirect nem
+    # TLS dentro do container.
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', '--no-check-certificate', 'https://localhost:8080/health']
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/health']
       interval: 10s
       timeout: 5s
       retries: 10

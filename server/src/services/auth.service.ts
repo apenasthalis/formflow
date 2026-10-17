@@ -47,9 +47,19 @@ export async function registerLoginAttempt(email: string, successful: boolean, i
   await prisma.loginAttempt.deleteMany({ where: { createdAt: { lt: cutoff } } });
 }
 
+/**
+ * Resolve o atributo `Secure` do cookie de sessão.
+ * Em `auto`, decide pela própria requisição, o que exige `trust proxy`
+ * configurado para que o `X-Forwarded-Proto` do Nginx seja considerado.
+ */
+function secureCookie(req: Request): boolean {
+  return env.COOKIE_SECURE === 'auto' ? req.secure : env.COOKIE_SECURE;
+}
+
 /** Cria a sessão, devolve o token bruto (única vez em que ele trafega) e expira. */
 export async function createSession(
   userId: string,
+  req: Request,
   res: Response,
 ): Promise<{ token: string; expiresAt: Date }> {
   const token = generateToken(32);
@@ -59,24 +69,29 @@ export async function createSession(
     data: { tokenHash: hashToken(token), userId, expiresAt },
   });
 
-  setSessionCookie(res, token, expiresAt);
+  setSessionCookie(req, res, token, expiresAt);
   return { token, expiresAt };
 }
 
-export function setSessionCookie(res: Response, token: string, expiresAt: Date): void {
+export function setSessionCookie(
+  req: Request,
+  res: Response,
+  token: string,
+  expiresAt: Date,
+): void {
   res.cookie(env.SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: env.COOKIE_SECURE,
+    secure: secureCookie(req),
     sameSite: env.COOKIE_SAME_SITE,
     path: '/',
     expires: expiresAt,
   });
 }
 
-export function clearSessionCookie(res: Response): void {
+export function clearSessionCookie(req: Request, res: Response): void {
   res.clearCookie(env.SESSION_COOKIE_NAME, {
     httpOnly: true,
-    secure: env.COOKIE_SECURE,
+    secure: secureCookie(req),
     sameSite: env.COOKIE_SAME_SITE,
     path: '/',
   });
@@ -87,7 +102,7 @@ export async function destroySessionFromRequest(req: Request, res: Response): Pr
   if (typeof token === 'string' && token.length > 0) {
     await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } });
   }
-  clearSessionCookie(res);
+  clearSessionCookie(req, res);
 }
 
 export async function resolveSession(token: string | undefined): Promise<AuthUser | null> {

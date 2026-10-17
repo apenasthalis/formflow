@@ -9,6 +9,13 @@ const booleanish = z
   .string()
   .transform((value) => ['1', 'true', 'yes', 'on'].includes(value.toLowerCase()));
 
+/** Igual a `booleanish`, mas preserva o valor especial `auto`. */
+const cookieSecure = z.string().transform((value): boolean | 'auto' => {
+  const normalized = value.toLowerCase();
+  if (normalized === 'auto') return 'auto';
+  return ['1', 'true', 'yes', 'on'].includes(normalized);
+});
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -27,7 +34,13 @@ const schema = z.object({
     .min(16, 'APP_SECRET deve ter ao menos 16 caracteres')
     .default('dev-only-insecure-secret-change-me'),
 
-  COOKIE_SECURE: booleanish.default('false'),
+  /**
+   * `true`/`false` fixam o atributo `Secure` do cookie de sessão.
+   * `auto` marca `Secure` somente quando a requisição chegou por HTTPS, o que
+   * permite publicar a mesma aplicação em um domínio com TLS e em uma porta
+   * auxiliar só com HTTP sem quebrar o login em nenhuma das duas.
+   */
+  COOKIE_SECURE: cookieSecure.default('auto'),
   COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 
   /** Limites dos rate limiters. */
