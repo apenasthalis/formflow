@@ -12,6 +12,7 @@ export function generateKey(prefix = 'q'): string {
 export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   [QuestionType.SHORT_TEXT]: 'Texto curto',
   [QuestionType.LONG_TEXT]: 'Texto longo',
+  [QuestionType.EMAIL]: 'E-mail',
   [QuestionType.SINGLE_CHOICE]: 'Seleção única',
   [QuestionType.MULTIPLE_CHOICE]: 'Múltipla escolha',
   [QuestionType.YES_NO]: 'Sim ou não',
@@ -26,6 +27,8 @@ export function defaultSettingsFor(type: QuestionType): QuestionSettingsInput {
       return { type, settings: { placeholder: '', maxLength: 280 } };
     case QuestionType.LONG_TEXT:
       return { type, settings: { placeholder: '', maxLength: 2000 } };
+    case QuestionType.EMAIL:
+      return { type, settings: { placeholder: '', maxLength: 180 } };
     case QuestionType.SINGLE_CHOICE:
     case QuestionType.MULTIPLE_CHOICE:
       return {

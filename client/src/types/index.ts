@@ -1,6 +1,7 @@
 export const QUESTION_TYPES = [
   'SHORT_TEXT',
   'LONG_TEXT',
+  'EMAIL',
   'SINGLE_CHOICE',
   'MULTIPLE_CHOICE',
   'YES_NO',

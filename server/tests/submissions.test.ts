@@ -217,6 +217,47 @@ describe('Respostas públicas', () => {
     }
   });
 
+  it('aceita apenas e-mails válidos na pergunta do tipo e-mail', async () => {
+    const form = await createForm(user.cookie, 'Coleta de e-mail');
+    await addQuestion(user.cookie, form.id, {
+      title: 'Qual seu e-mail?',
+      type: 'EMAIL',
+      required: true,
+    });
+    await publish(user.cookie, form.id);
+
+    const publica = await getPublicForm(form.slug);
+    expect(publica.questions[0]!.type).toBe('EMAIL');
+    const key = publica.questions[0]!.key;
+
+    for (const invalido of ['ana@', '@exemplo.com', 'anaSouza', 'ana @exemplo.com', 'ana@exemplo']) {
+      const recusa = await request(app)
+        .post(`/api/public/forms/${form.slug}/submissions`)
+        .send({ idempotencyKey: newIdempotencyKey(), answers: [{ questionKey: key, text: invalido }] })
+        .expect(422);
+      expect(recusa.body.error.details[key]).toMatch(/e-mail válido/i);
+    }
+
+    // Vazio continua sendo tratado como "não respondida".
+    await request(app)
+      .post(`/api/public/forms/${form.slug}/submissions`)
+      .send({ idempotencyKey: newIdempotencyKey(), answers: [] })
+      .expect(422);
+
+    const valido = await request(app)
+      .post(`/api/public/forms/${form.slug}/submissions`)
+      .send({
+        idempotencyKey: newIdempotencyKey(),
+        answers: [{ questionKey: key, text: '  Ana.Souza+contato@exemplo.com.br  ' }],
+      })
+      .expect(201);
+
+    const resposta = await prisma.answer.findFirstOrThrow({
+      where: { submissionId: valido.body.submissionId },
+    });
+    expect(resposta.answerText).toBe('Ana.Souza+contato@exemplo.com.br');
+  });
+
   it('aceita pular perguntas opcionais', async () => {
     const response = await request(app)
       .post(`/api/public/forms/${slug}/submissions`)

@@ -36,6 +36,20 @@ export const textSettingsSchema = z.object({
   maxLength: z.coerce.number().int().min(1).max(5000).default(280),
 });
 
+/** Um e-mail cabe em uma linha: o limite é menor que o do texto livre. */
+export const emailSettingsSchema = z.object({
+  placeholder: z.string().max(200).default(''),
+  maxLength: z.coerce.number().int().min(3).max(180).default(180),
+});
+
+/** Formato aceito para a resposta de uma pergunta do tipo e-mail. */
+export const emailAnswerSchema = z
+  .string()
+  .trim()
+  .min(1, 'Informe um e-mail válido.')
+  .max(180, 'Informe um e-mail válido.')
+  .email('Informe um e-mail válido.');
+
 export const choiceSettingsSchema = z.object({
   options: z.array(choiceOptionSchema).min(1, 'Adicione ao menos uma alternativa').max(30),
   /** Exibe o campo "Outro" com texto livre. */
@@ -49,6 +63,7 @@ export const choiceSettingsSchema = z.object({
 export const questionSettingsSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal(QuestionType.SHORT_TEXT), settings: textSettingsSchema }),
   z.object({ type: z.literal(QuestionType.LONG_TEXT), settings: textSettingsSchema }),
+  z.object({ type: z.literal(QuestionType.EMAIL), settings: emailSettingsSchema }),
   z.object({ type: z.literal(QuestionType.SINGLE_CHOICE), settings: choiceSettingsSchema }),
   z.object({ type: z.literal(QuestionType.MULTIPLE_CHOICE), settings: choiceSettingsSchema }),
   z.object({ type: z.literal(QuestionType.YES_NO), settings: yesNoLabelsSchema }),

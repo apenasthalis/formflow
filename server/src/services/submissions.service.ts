@@ -1,6 +1,7 @@
 import { Prisma, QuestionType, SubmissionStatus } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../utils/errors.js';
+import { emailAnswerSchema } from '../schemas/question.js';
 import type { FormSnapshot, FormVersionSnapshot } from '../schemas/snapshot.js';
 
 export type AnswerInput = {
@@ -88,6 +89,13 @@ function validateAnswer(question: SnapshotQuestion, answer: AnswerInput | undefi
       return null;
     }
 
+    case QuestionType.EMAIL: {
+      const text = clampText(String(answer?.text ?? ''), settings.maxLength ?? 180);
+      if (!text) return question.required ? 'Esta pergunta é obrigatória.' : null;
+      // O formato é conferido no texto já normalizado, que é o que será gravado.
+      return emailAnswerSchema.safeParse(text).success ? null : 'Informe um e-mail válido.';
+    }
+
     case QuestionType.SINGLE_CHOICE: {
       const value = String(answer?.value ?? '');
       const allowed = optionValues(question);
@@ -154,6 +162,7 @@ function normalizeAnswer(question: SnapshotQuestion, answer: AnswerInput) {
   switch (question.type) {
     case QuestionType.SHORT_TEXT:
     case QuestionType.LONG_TEXT:
+    case QuestionType.EMAIL:
       return text ? { answerText: text, answerJson: undefined } : null;
 
     case QuestionType.SINGLE_CHOICE: {

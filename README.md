@@ -209,7 +209,7 @@ Todas as variáveis estão documentadas em `.env.example`. As mais importantes:
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Conexão com o banco |
 | `POSTGRES_HOST_PORT` | Porta do PostgreSQL no host (somente desenvolvimento) |
 | `APP_SECRET` | Assina cookies e deriva hashes de token/IP (mín. 16 caracteres) |
-| `COOKIE_SECURE` | `true` somente sob HTTPS |
+| `COOKIE_SECURE` | `auto` (padrão) marca `Secure` só sob HTTPS; `true`/`false` fixam |
 | `SESSION_TTL_SECONDS` | Duração da sessão administrativa (padrão: 12 h) |
 | `RATE_LIMIT_LOGIN_MAX` | Tentativas de login por janela (padrão: 10 / 15 min) |
 | `RATE_LIMIT_PUBLIC_MAX` | Requisições por minuto nos endpoints públicos |
@@ -360,6 +360,7 @@ Respostas inválidas retornam `422` com o mapa de erros por pergunta:
 | --- | --- | --- |
 | `SHORT_TEXT` | `answer_text` | placeholder, limite de caracteres |
 | `LONG_TEXT` | `answer_text` | placeholder, limite de caracteres |
+| `EMAIL` | `answer_text` | placeholder, limite de caracteres (até 180) |
 | `SINGLE_CHOICE` | `answer_json: { value }` | alternativas, “outro”, reordenar |
 | `MULTIPLE_CHOICE` | `answer_json: { selected[] }` | alternativas, “outro”, reordenar |
 | `YES_NO` | `answer_json: { value }` | rótulos de “sim” e “não” |
@@ -368,6 +369,11 @@ Respostas inválidas retornam `422` com o mapa de erros por pergunta:
 
 Todas permitem: enunciado, descrição, obrigatoriedade, posição, ordem na
 estrutura do formulário e mensagem de erro personalizada.
+
+O tipo `EMAIL` renderiza um `input[type=email]` na página pública e valida o
+formato antes de salvar: o cliente mostra “Informe um e-mail válido.” e o
+servidor recusa a submissão com `422`, de modo que uma resposta inválida nunca
+chega ao banco.
 
 ---
 
@@ -412,14 +418,14 @@ são gravadas em uma única transação — ou tudo é salvo, ou nada.
 
 ## Testes
 
-41 testes de integração contra um PostgreSQL real (`Vitest` + `Supertest`),
+43 testes de integração contra um PostgreSQL real (`Vitest` + `Supertest`),
 cobrindo os fluxos críticos:
 
 | Arquivo | Cobertura |
 | --- | --- |
 | `server/tests/auth.test.ts` | login válido/inválido, sessão, hash, rotas protegidas |
-| `server/tests/forms.test.ts` | CRUD, slug único, reordenação, duplicação, publicação, versionamento, isolamento entre administradores |
-| `server/tests/submissions.test.ts` | validação por tipo, obrigatoriedade, idempotência, concorrência, integridade da versão, link estável |
+| `server/tests/forms.test.ts` | CRUD, slug único, reordenação, duplicação, publicação, versionamento, slug preservado na publicação, isolamento entre administradores |
+| `server/tests/submissions.test.ts` | validação por tipo (incluindo e-mail), obrigatoriedade, idempotência, concorrência, integridade da versão, link estável |
 | `server/tests/results.test.ts` | agregados, distribuição, média, busca, paginação, CSV, exclusão em cascata |
 
 Executar:
@@ -453,6 +459,13 @@ segura e sustentável:
    editar livremente no rascunho.
 8. **Preview reutiliza o mesmo componente da página pública**, garantindo que a
    prévia seja fiel à experiência real.
+9. **O rascunho aberto no editor é a fonte da verdade do texto**: o servidor
+   normaliza os textos (sem espaços nas pontas) e a resposta do salvamento nunca
+   sobrescreve o que está no campo — assim o espaço digitado não some. Só o que o
+   servidor calcula (status, posições, datas) entra vindo dele.
+10. **Publicar reutiliza o slug do editor**: o rascunho é gravado antes do
+    `POST /publish` e as mutações do editor são serializadas, de modo que o link
+    público publicado é sempre o que está em Configurações.
 
 ---
 
@@ -461,9 +474,10 @@ segura e sustentável:
 A infraestrutura local está pronta; a configuração de produção é manual e não
 está incluída neste projeto. Para publicar:
 
-1. **HTTPS** — o Nginx já encaminha `X-Forwarded-Proto`; configure o certificado
-   e defina `COOKIE_SECURE=true` e `COOKIE_SAME_SITE=none` (ou `lax`, se o
-   frontend e a API compartilharem o mesmo domínio).
+1. **HTTPS** — o Nginx já encaminha `X-Forwarded-Proto`; monte o certificado em
+   `/etc/letsencrypt` e mantenha `COOKIE_SECURE=auto` (o padrão), que marca
+   `Secure` só nas requisições que chegam por TLS. Use `COOKIE_SAME_SITE=none`
+   (ou `lax`, se o frontend e a API compartilharem o mesmo domínio).
 2. **Domínio** — ajuste `APP_HTTP_URL` e `CORS_ORIGIN` para o domínio real.
 3. **Segredos** — gere `APP_SECRET` e a senha do banco em um gerenciador de
    segredos; nunca versione o `.env`.

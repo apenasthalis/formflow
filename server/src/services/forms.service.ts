@@ -95,6 +95,10 @@ export { type QuestionForSnapshot };
  * Publica o formulário: valida a estrutura e cria uma FormVersion imutável.
  * Toda publicação gera uma nova versão, e as submissões passam a apontar
  * para ela — alterações futuras no rascunho não afetam respostas anteriores.
+ *
+ * O slug público (o "hash" do link) definido no editor é preservado: publicar
+ * apenas muda o status e cria a versão, nunca regenera o endereço. É por isso
+ * que o cliente grava o rascunho antes de chamar este endpoint.
  */
 export async function publishForm(formId: string, ownerId: string): Promise<Form> {
   const form = await findOwnedForm(formId, ownerId);

@@ -232,6 +232,8 @@ formsRouter.post('/:id/duplicate', requireOwnedForm, async (req, res, next) => {
 formsRouter.post('/:id/publish', requireOwnedForm, async (req, res, next) => {
   try {
     const form = await publishForm(routeId(req), req.user!.id);
+    // O slug volta na resposta para o painel confirmar qual link foi publicado:
+    // publicar reutiliza o endereço já definido no editor.
     res.json({
       form: {
         id: form.id,

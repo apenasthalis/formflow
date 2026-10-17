@@ -23,6 +23,7 @@ enum FormStatus {
 enum QuestionType {
   SHORT_TEXT
   LONG_TEXT
+  EMAIL
   SINGLE_CHOICE
   MULTIPLE_CHOICE
   YES_NO

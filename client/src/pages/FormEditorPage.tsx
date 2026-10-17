@@ -52,6 +52,42 @@ import type { Form, FormDetail, PublicForm, Question, QuestionType } from '@/typ
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
+const formQueryKey = (formId: string) => ['form', formId] as const;
+
+/**
+ * O servidor normaliza os textos (remove espaços das pontas, preenche
+ * configurações), então a resposta nunca é idêntica ao que está no campo.
+ * Aplicá-la como está faria o espaço recém-digitado desaparecer e as palavras
+ * se grudarem. Por isso os campos editáveis mantêm o valor local — que é a
+ * fonte da verdade enquanto o formulário estiver aberto — e o servidor entra
+ * só com o que ele calcula (status, posições, datas).
+ */
+function mergeForm<T extends Form>(server: T, local: Form | undefined): T {
+  if (!local) return server;
+  const localById = new Map(local.questions.map((question) => [question.id, question]));
+  const merged = { ...server };
+  merged.title = local.title;
+  merged.slug = local.slug;
+  merged.description = local.description;
+  merged.welcomeMessage = local.welcomeMessage;
+  merged.thankYouMessage = local.thankYouMessage;
+  merged.questions = server.questions.map((question) =>
+    mergeQuestion(question, localById.get(question.id)),
+  );
+  return merged;
+}
+
+function mergeQuestion(server: Question, local: Question | undefined): Question {
+  if (!local) return server;
+  return {
+    ...server,
+    title: local.title,
+    description: local.description,
+    errorMessage: local.errorMessage,
+    settings: local.settings,
+  };
+}
+
 export function FormEditorPage() {
   const { formId } = useParams<{ formId: string }>();
   const queryClient = useQueryClient();
@@ -82,18 +118,47 @@ export function FormEditorPage() {
   }, [form]);
 
   const setCacheForm = (updater: (form: Form) => Form) => {
-    queryClient.setQueryData(['form', formId], (previous: { form: Form } | undefined) => {
+    queryClient.setQueryData(formQueryKey(formId as string), (previous: { form: Form } | undefined) => {
       if (!previous) return previous;
       return { form: updater(previous.form) };
     });
   };
 
+  /** Aplica o que veio do servidor preservando o texto que está sendo digitado. */
+  const writeFormFromServer = (server: Form, local?: Form) => {
+    queryClient.setQueryData(formQueryKey(formId as string), (previous: { form: Form } | undefined) => ({
+      form: mergeForm(server, local ?? previous?.form),
+    }));
+  };
+
+  /**
+   * Recarrega o formulário do servidor mantendo as edições locais. A busca é
+   * explícita (e não um refetch) porque o refetch sobrescreveria o rascunho no
+   * cache antes do merge, o que apagaria algo digitado durante a requisição.
+   */
+  const refreshFromServer = async () => {
+    try {
+      const { form } = await formsService.get(formId as string);
+      writeFormFromServer(form);
+    } catch {
+      // Falhar ao recarregar não interrompe a ação que disparou a atualização.
+    }
+  };
+
   /* ------------------------------ Mutations ----------------------------- */
 
+  /**
+   * Todas as mutações do editor compartilham um escopo: o react-query executa
+   * uma de cada vez. Assim uma publicação nunca corre antes do salvamento do
+   * que acabou de ser digitado (o slug do link público, por exemplo).
+   */
+  const editorScope = { id: `editor:${formId}` };
+
   const formMutation = useMutation({
+    scope: editorScope,
     mutationFn: (payload: FormPayload) => formsService.update(formId as string, payload),
     onSuccess: (result) => {
-      queryClient.setQueryData(['form', formId], result);
+      writeFormFromServer(result.form);
       setSaveState('saved');
     },
     onError: (error: Error) => {
@@ -103,20 +168,25 @@ export function FormEditorPage() {
   });
 
   const questionMutation = useMutation({
+    scope: editorScope,
     mutationFn: ({ questionId, payload }: { questionId: string; payload: QuestionPayload }) =>
       questionsService.update(questionId, payload),
     onSuccess: (result) => {
-      queryClient.setQueryData(['form', formId], (previous: { form: Form } | undefined) =>
-        previous
-          ? {
-              form: {
-                ...previous.form,
-                questions: previous.form.questions.map((question) =>
-                  question.id === result.question.id ? result.question : question,
-                ),
-              },
-            }
-          : previous,
+      queryClient.setQueryData(
+        formQueryKey(formId as string),
+        (previous: { form: Form } | undefined) =>
+          previous
+            ? {
+                form: {
+                  ...previous.form,
+                  questions: previous.form.questions.map((question) =>
+                    question.id === result.question.id
+                      ? mergeQuestion(result.question, question)
+                      : question,
+                  ),
+                },
+              }
+            : previous,
       );
       setSaveState('saved');
     },
@@ -127,6 +197,7 @@ export function FormEditorPage() {
   });
 
   const addQuestionMutation = useMutation({
+    scope: editorScope,
     mutationFn: (type: QuestionType) =>
       questionsService.create(formId as string, {
         type,
@@ -135,7 +206,9 @@ export function FormEditorPage() {
         settings: defaultSettingsFor(type),
       }),
     onSuccess: (result) => {
-      queryClient.setQueryData(['form', formId], result);
+      queryClient.setQueryData(formQueryKey(formId as string), (previous: { form: Form } | undefined) =>
+        previous ? { form: mergeForm(result.form, previous.form) } : result,
+      );
       setSelectedId(result.question.id);
       // O foco vai direto ao enunciado da pergunta recém-criada.
       setFocusTitleFor(result.question.id);
@@ -145,9 +218,10 @@ export function FormEditorPage() {
   });
 
   const duplicateQuestionMutation = useMutation({
+    scope: editorScope,
     mutationFn: (questionId: string) => questionsService.duplicate(questionId),
     onSuccess: (result) => {
-      void query.refetch();
+      void refreshFromServer();
       setSelectedId(result.question.id);
       toast.success('Pergunta duplicada.');
     },
@@ -155,9 +229,10 @@ export function FormEditorPage() {
   });
 
   const deleteQuestionMutation = useMutation({
+    scope: editorScope,
     mutationFn: (questionId: string) => questionsService.remove(questionId),
     onSuccess: () => {
-      void query.refetch();
+      void refreshFromServer();
       setPendingDelete(null);
       toast.success('Pergunta excluída.');
     },
@@ -168,24 +243,26 @@ export function FormEditorPage() {
   });
 
   const reorderMutation = useMutation({
+    scope: editorScope,
     mutationFn: (questionIds: string[]) => questionsService.reorder(formId as string, questionIds),
     onSuccess: (result) => {
-      queryClient.setQueryData(['form', formId], result);
+      writeFormFromServer(result.form);
       setSaveState('saved');
     },
     onError: (error: Error) => {
       toast.error(error.message);
-      void query.refetch();
+      void refreshFromServer();
     },
   });
 
   const publishMutation = useMutation({
+    scope: editorScope,
     mutationFn: (action: 'publish' | 'unpublish') =>
       action === 'publish'
         ? formsService.publish(formId as string)
         : formsService.unpublish(formId as string),
     onSuccess: (_result, action) => {
-      void query.refetch();
+      void refreshFromServer();
       toast.success(
         action === 'publish'
           ? 'Formulário publicado. O link público está ativo.'
@@ -208,25 +285,35 @@ export function FormEditorPage() {
   const pendingQuestions = useRef(new Map<string, QuestionPayload>());
   const pendingForm = useRef<FormPayload>({});
 
+  /** Envia o que está no buffer. Não faz nada quando não há alteração pendente. */
   const flushSaves = useCallback(() => {
-    const perguntas = [...pendingQuestions.current.entries()];
-    pendingQuestions.current.clear();
-    for (const [questionId, payload] of perguntas) {
-      if (Object.keys(payload).length > 0) questionMutation.mutate({ questionId, payload });
-    }
-
+    const perguntas = [...pendingQuestions.current.entries()].filter(
+      ([, payload]) => Object.keys(payload).length > 0,
+    );
     const form = pendingForm.current;
+    pendingQuestions.current.clear();
     pendingForm.current = {};
+
+    if (perguntas.length === 0 && Object.keys(form).length === 0) return;
+
+    setSaveState('saving');
+    for (const [questionId, payload] of perguntas) {
+      questionMutation.mutate({ questionId, payload });
+    }
     if (Object.keys(form).length > 0) formMutation.mutate(form);
   }, [formMutation, questionMutation]);
 
   const scheduleSave = useDebouncedCallback(() => {
-    setSaveState('saving');
     flushSaves();
   }, 600);
 
   // Alterações pendentes são enviadas mesmo que a pessoa saia da tela.
-  useEffect(() => () => flushSaves(), [flushSaves]);
+  useEffect(
+    () => () => {
+      flushSaves();
+    },
+    [flushSaves],
+  );
 
   const updateQuestion = (question: Question, patch: QuestionPayload) => {
     setCacheForm((previous) => ({
@@ -298,6 +385,21 @@ export function FormEditorPage() {
     reorderMutation.mutate(next);
   };
 
+  /**
+   * Publicar só depois de gravar o rascunho. O link público (slug) definido em
+   * Configurações faz parte dele: enviar a publicação com o buffer ainda vazio
+   * faria o endpoint usar o endereço antigo.
+   */
+  const handlePublish = () => {
+    flushSaves();
+    publishMutation.mutate('publish');
+  };
+
+  const handleUnpublish = () => {
+    flushSaves();
+    publishMutation.mutate('unpublish');
+  };
+
   // Foca o enunciado assim que a pergunta recién-criada entra no editor.
   useEffect(() => {
     if (!focusTitleFor || selectedId !== focusTitleFor) return;
@@ -360,8 +462,8 @@ export function FormEditorPage() {
         busy={publishMutation.isPending}
         onPreview={() => setPreviewOpen(true)}
         onSettings={() => setSettingsOpen(true)}
-        onPublish={() => publishMutation.mutate('publish')}
-        onUnpublish={() => publishMutation.mutate('unpublish')}
+        onPublish={handlePublish}
+        onUnpublish={handleUnpublish}
         onTitleChange={(title) => updateForm({ title })}
       />
 

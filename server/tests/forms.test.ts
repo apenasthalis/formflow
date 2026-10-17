@@ -167,6 +167,29 @@ describe('Formulários, perguntas e publicação', () => {
     expect(depoisDaTerceira).toBe(depoisDaPrimeira + 1);
   });
 
+  it('mantém o slug definido no editor ao publicar', async () => {
+    const form = await createForm(user.cookie, 'Link definitivo');
+    await addQuestion(user.cookie, form.id, { title: 'Pergunta' });
+
+    const editado = await client
+      .patch(`/api/forms/${form.id}`)
+      .send({ slug: 'link-definitivo-editado' })
+      .expect(200);
+    expect(editado.body.form.slug).toBe('link-definitivo-editado');
+
+    const publicado = await client.post(`/api/forms/${form.id}/publish`).expect(200);
+    expect(publicado.body.form.slug).toBe('link-definitivo-editado');
+    expect(publicado.body.form.status).toBe('PUBLISHED');
+
+    // O link publicado é o do editor: o endereço antigo deixa de responder.
+    await request(app).get('/api/public/forms/link-definitivo-editado').expect(200);
+    await request(app).get('/api/public/forms/link-definitivo').expect(404);
+
+    // Republicar continua usando o mesmo endereço.
+    await client.post(`/api/forms/${form.id}/publish`).expect(200);
+    expect((await client.get(`/api/forms/${form.id}`)).body.form.slug).toBe('link-definitivo-editado');
+  });
+
   it('despublica, arquiva e exclui', async () => {
     const form = await createForm(user.cookie, 'Ciclo de vida');
     await addQuestion(user.cookie, form.id);

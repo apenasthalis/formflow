@@ -3,6 +3,7 @@ import type { QuestionType, QuestionSettings } from '@/types';
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   SHORT_TEXT: 'Texto curto',
   LONG_TEXT: 'Texto longo',
+  EMAIL: 'E-mail',
   SINGLE_CHOICE: 'Seleção única',
   MULTIPLE_CHOICE: 'Múltipla escolha',
   YES_NO: 'Sim ou não',
@@ -11,14 +12,26 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
 };
 
 export const QUESTION_TYPE_DESCRIPTION: Record<QuestionType, string> = {
-  SHORT_TEXT: 'Uma linha de resposta (nome, e-mail, cidade).',
+  SHORT_TEXT: 'Uma linha de resposta (nome, cidade).',
   LONG_TEXT: 'Resposta aberta com várias linhas.',
+  EMAIL: 'Endereço de e-mail, validado antes de enviar.',
   SINGLE_CHOICE: 'Uma única alternativa, com avanço automático.',
   MULTIPLE_CHOICE: 'Várias alternativas selecionáveis antes de continuar.',
   YES_NO: 'Resposta binária com rótulos personalizáveis.',
   SCALE: 'Escala numérica entre dois limites.',
   RATING: 'Nota por estrelas ou escala equivalente.',
 };
+
+/** Limite padrão de caracteres de uma resposta de e-mail (espelha o servidor). */
+export const EMAIL_MAX_LENGTH = 180;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+
+/** Formato de e-mail aceito pelo formulário público e pelo servidor. */
+export function isValidEmail(value: string): boolean {
+  const email = value.trim();
+  return email.length > 0 && email.length <= EMAIL_MAX_LENGTH && EMAIL_PATTERN.test(email);
+}
 
 export const FORM_STATUS_LABEL = {
   DRAFT: 'Rascunho',
@@ -41,6 +54,8 @@ export function defaultSettingsFor(type: QuestionType): QuestionSettings {
       return { placeholder: '', maxLength: 280 };
     case 'LONG_TEXT':
       return { placeholder: '', maxLength: 2000 };
+    case 'EMAIL':
+      return { placeholder: '', maxLength: EMAIL_MAX_LENGTH };
     case 'SINGLE_CHOICE':
     case 'MULTIPLE_CHOICE':
       return {

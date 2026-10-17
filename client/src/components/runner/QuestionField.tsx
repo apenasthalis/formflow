@@ -82,12 +82,15 @@ export function QuestionField({
   const otherText = answer?.text ?? '';
   const isOtherVisible = (settings as { allowOther?: boolean })?.allowOther ?? false;
 
-  if (question.type === 'SHORT_TEXT' || question.type === 'LONG_TEXT') {
+  if (question.type === 'SHORT_TEXT' || question.type === 'LONG_TEXT' || question.type === 'EMAIL') {
     const text = settings as { placeholder: string; maxLength: number };
     const isLong = question.type === 'LONG_TEXT';
+    const isEmail = question.type === 'EMAIL';
     const shared = {
       value: answer?.text ?? '',
-      placeholder: text.placeholder || (isLong ? 'Digite sua resposta…' : 'Sua resposta'),
+      placeholder:
+        text.placeholder ||
+        (isEmail ? 'voce@exemplo.com' : isLong ? 'Digite sua resposta…' : 'Sua resposta'),
       maxLength: text.maxLength,
       disabled,
       onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -105,8 +108,13 @@ export function QuestionField({
       <input
         {...shared}
         ref={inputRef as React.RefObject<HTMLInputElement>}
-        type="text"
-        className={TEXT_INPUT_CLASS}
+        type={isEmail ? 'email' : 'text'}
+        inputMode={isEmail ? 'email' : undefined}
+        autoComplete={isEmail ? 'email' : undefined}
+        autoCapitalize={isEmail ? 'none' : undefined}
+        spellCheck={!isEmail}
+        aria-invalid={isEmail ? Boolean(error) : undefined}
+        className={cn(TEXT_INPUT_CLASS, isEmail && error && 'border-destructive')}
       />
     );
 
