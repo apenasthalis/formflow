@@ -278,7 +278,19 @@ function refresh(){
   document.getElementById("pbar").setAttribute("aria-valuenow",pc);
   document.getElementById("pLabel").textContent=pc+"% concluído";
 }
-function celebrate(){var t=document.createElement("div");t.textContent="Voce arrassou diva!!!";t.style.cssText="position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#1E8A4C;color:#fff;padding:12px 18px;border-radius:8px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .25s";document.body.appendChild(t);requestAnimationFrame(function(){t.style.opacity="1"});setTimeout(function(){t.style.opacity="0";setTimeout(function(){t.remove()},300)},1800)}
+function celebrate(){
+  var existing=document.getElementById("celebrate-modal"); if(existing) existing.remove();
+  if(!document.getElementById("celebrate-style")){var st=document.createElement("style");st.id="celebrate-style";st.textContent="@keyframes confetti-fall{0%{transform:translateY(-10vh) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}";document.head.appendChild(st)}
+  var overlay=document.createElement("div");overlay.id="celebrate-modal";overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:9999;overflow:hidden";
+  var card=document.createElement("div");card.style.cssText="background:linear-gradient(135deg,#ff5fa2,#ff8fc8);color:#fff;padding:32px 36px;border-radius:18px;text-align:center;max-width:90vw;box-shadow:0 24px 70px rgba(0,0,0,.35)";
+  var msg=document.createElement("div");msg.textContent="Voce arrassou diva!!!";msg.style.cssText="font-size:30px;font-weight:800;margin-bottom:20px;line-height:1.1";
+  var btn=document.createElement("button");btn.type="button";btn.textContent="Fechar";btn.style.cssText="background:#fff;color:#ff5fa2;border:none;padding:10px 26px;border-radius:999px;font-weight:700;cursor:pointer;font-size:15px";
+  btn.addEventListener("click",function(){overlay.remove()});
+  card.appendChild(msg);card.appendChild(btn);overlay.appendChild(card);
+  var colors=["#ffffff","#ffd1e6","#ffe066","#b3e5fc","#c8e6c9","#f8bbd0"];
+  for(var i=0;i<100;i++){var c=document.createElement("div");var size=6+Math.random()*10;c.style.cssText="position:absolute;width:"+size+"px;height:"+size+"px;background:"+colors[Math.floor(Math.random()*colors.length)]+";left:"+(Math.random()*100)+"%;top:-20px;border-radius:"+(Math.random()>.5?"50%":"3px")+";animation:confetti-fall "+(1.6+Math.random()*2.2)+"s linear "+(Math.random()*.6)+"s forwards";overlay.appendChild(c)}
+  document.body.appendChild(overlay);
+}
 document.getElementById("phases").addEventListener("change",function(e){
   if(e.target.classList.contains("chk")){var k=e.target.id.slice(2);if(e.target.checked){store[k]=1;celebrate()}else delete store[k];save();refresh()}
 });
