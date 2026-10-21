@@ -53,7 +53,7 @@ export function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_minmax(0,420px)]">
       <section className="relative hidden flex-col justify-between bg-slate-950 p-12 text-slate-100 lg:flex">
-        <Logo className="[&_span:last-child]:text-white" />
+        <Logo className="[&_span:last-child]:text-white" label="ambiente babilonico" />
 
         <div className="max-w-md space-y-6">
           <h1 className="text-3xl font-semibold leading-tight tracking-tight">
@@ -85,7 +85,7 @@ export function LoginPage() {
       <section className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm space-y-8">
           <div className="lg:hidden">
-            <Logo />
+            <Logo label="ambiente babilonico" />
           </div>
 
           <div className="space-y-2">
