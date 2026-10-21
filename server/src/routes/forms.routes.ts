@@ -401,6 +401,19 @@ formsRouter.get('/:id/submissions/:submissionId', requireOwnedForm, async (req, 
   }
 });
 
+formsRouter.delete('/:id/submissions/:submissionId', requireOwnedForm, async (req, res, next) => {
+  try {
+    const formId = routeId(req);
+    const submissionId = routeId(req, 'submissionId');
+    const submission = await prisma.submission.findFirst({ where: { id: submissionId, formId } });
+    if (!submission) throw AppError.notFound('Resposta não encontrada.');
+    await prisma.submission.delete({ where: { id: submissionId } });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
 formsRouter.get('/:id/export.csv', requireOwnedForm, async (req, res, next) => {
   try {
     const { from, to } = dateRange(req.query);

@@ -1,10 +1,24 @@
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Clock, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/layouts/AdminLayout';
+import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { ErrorState, LoadingState } from '@/components/ui/states';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useSubmission } from '@/hooks/queries';
+import { resultsService } from '@/services/api';
 import { formatDateTime, formatDuration } from '@/utils/format';
 import { QUESTION_TYPE_LABEL } from '@/utils/questions';
 import type { SubmissionDetail } from '@/types';
@@ -13,6 +27,19 @@ export function SubmissionDetailPage() {
   const { formId, submissionId } = useParams<{ formId: string; submissionId: string }>();
   const formQuery = useForm(formId);
   const query = useSubmission(formId, submissionId);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const deleteMutation = useMutation({
+    mutationFn: () => resultsService.removeSubmission(formId as string, submissionId as string),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['submissions', formId] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics', formId] });
+      toast.success('Resposta excluída.');
+      navigate(`/resultados/${formId}`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   if (query.isLoading) return <LoadingState label="Carregando submissão…" />;
 
@@ -36,12 +63,23 @@ export function SubmissionDetailPage() {
         title="Respostas enviadas"
         description={`${formQuery.data?.form.title ?? 'Formulário'} · versão v${submission.versionNumber}`}
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/resultados/${formId}`}>
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Voltar aos resultados
-            </Link>
-          </Button>
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/resultados/${formId}`}>
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Voltar aos resultados
+              </Link>
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setConfirmOpen(true)}
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Excluir
+            </Button>
+          </>
         }
       />
 
@@ -68,6 +106,26 @@ export function SubmissionDetailPage() {
           </ol>
         )}
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta resposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A resposta selecionada será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

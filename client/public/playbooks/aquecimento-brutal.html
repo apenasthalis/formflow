@@ -278,8 +278,9 @@ function refresh(){
   document.getElementById("pbar").setAttribute("aria-valuenow",pc);
   document.getElementById("pLabel").textContent=pc+"% concluído";
 }
+function celebrate(){var t=document.createElement("div");t.textContent="Voce arrassou diva!!!";t.style.cssText="position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#1E8A4C;color:#fff;padding:12px 18px;border-radius:8px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .25s";document.body.appendChild(t);requestAnimationFrame(function(){t.style.opacity="1"});setTimeout(function(){t.style.opacity="0";setTimeout(function(){t.remove()},300)},1800)}
 document.getElementById("phases").addEventListener("change",function(e){
-  if(e.target.classList.contains("chk")){var k=e.target.id.slice(2);if(e.target.checked)store[k]=1;else delete store[k];save();refresh()}
+  if(e.target.classList.contains("chk")){var k=e.target.id.slice(2);if(e.target.checked){store[k]=1;celebrate()}else delete store[k];save();refresh()}
 });
 document.getElementById("goToday").addEventListener("click",function(){
   var t=document.querySelector('.day[data-d="'+todayKey+'"]');

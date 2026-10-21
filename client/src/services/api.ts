@@ -103,6 +103,9 @@ export const resultsService = {
   submission: (formId: string, submissionId: string) =>
     api.get<{ submission: SubmissionDetail }>(`/forms/${formId}/submissions/${submissionId}`),
 
+  removeSubmission: (formId: string, submissionId: string) =>
+    api.delete<void>(`/forms/${formId}/submissions/${submissionId}`),
+
   exportCsv: (formId: string, params: { from?: string; to?: string }) =>
     apiRequest<string>(`/forms/${formId}/export.csv${buildQuery(params)}`, { raw: true }),
 };

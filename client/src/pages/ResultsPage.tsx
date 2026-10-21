@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarDays,
   ChevronLeft,
@@ -12,9 +12,20 @@ import {
   Pencil,
   Search,
   Star,
+  Trash2,
 } from 'lucide-react';
 import { PageHeader } from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { FormStatusBadge } from '@/components/FormStatusBadge';
@@ -44,6 +55,8 @@ export function ResultsPage() {
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounced(search);
+  const queryClient = useQueryClient();
+  const [pendingDeleteSubmission, setPendingDeleteSubmission] = useState<SubmissionListItem | null>(null);
 
   const filters = useMemo(
     () => ({ from: from || undefined, to: to || undefined, search: debouncedSearch || undefined }),
@@ -69,6 +82,18 @@ export function ResultsPage() {
       link.click();
       URL.revokeObjectURL(url);
       toast.success('Arquivo CSV gerado.');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteSubmissionMutation = useMutation({
+    mutationFn: (submissionId: string) =>
+      resultsService.removeSubmission(formId as string, submissionId),
+    onSuccess: () => {
+      setPendingDeleteSubmission(null);
+      void queryClient.invalidateQueries({ queryKey: ['submissions', formId] });
+      void queryClient.invalidateQueries({ queryKey: ['analytics', formId] });
+      toast.success('Resposta excluída.');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -267,6 +292,7 @@ export function ResultsPage() {
                     <SubmissionTable
                       submissions={submissionsQuery.data.submissions}
                       formId={form.id as string}
+                      onDelete={(submission) => setPendingDeleteSubmission(submission)}
                       total={submissionsQuery.data.total}
                       page={submissionsQuery.data.page}
                       pageCount={submissionsQuery.data.pageCount}
@@ -310,6 +336,33 @@ export function ResultsPage() {
           </Badge>
         </div>
       ) : null}
+
+      <AlertDialog
+        open={Boolean(pendingDeleteSubmission)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteSubmission(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta resposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A resposta selecionada será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSubmissionMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteSubmissionMutation.isPending}
+              onClick={() => {
+                if (pendingDeleteSubmission) deleteSubmissionMutation.mutate(pendingDeleteSubmission.id);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -339,6 +392,7 @@ function SubmissionTable({
   pageCount,
   onPageChange,
   questions,
+  onDelete,
 }: {
   submissions: SubmissionListItem[];
   formId: string;
@@ -347,6 +401,7 @@ function SubmissionTable({
   pageCount: number;
   onPageChange: (page: number) => void;
   questions: AnalyticQuestionView[];
+  onDelete: (submission: SubmissionListItem) => void;
 }) {
   if (submissions.length === 0) {
     return (
@@ -392,9 +447,19 @@ function SubmissionTable({
                   </td>
                 ))}
                 <td className="px-4 py-3 text-right align-top">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to={`/resultados/${formId}/${submission.id}`}>Ver</Link>
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to={`/resultados/${formId}/${submission.id}`}>Ver</Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(submission)}
+                      aria-label="Excluir resposta"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
