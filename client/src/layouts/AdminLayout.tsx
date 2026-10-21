@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, BookOpen, LayoutList, LogOut, Menu, Plus, Settings, X } from 'lucide-react';
+import { BarChart3, BookOpen, LayoutList, LogOut, Menu, Moon, Plus, Settings, Sun, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,17 @@ const NAV_ITEMS = [
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    const stored = localStorage.getItem('formflow-theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('formflow-theme', theme);
+  }, [theme]);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -103,6 +114,15 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className="space-y-3 border-t pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
+                {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
