@@ -290,4 +290,5 @@ refresh();
 })();
 </script>
 
+<script>(function(){function applyTheme(){var t=null;try{t=localStorage.getItem('formflow-theme')}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}applyTheme();try{window.addEventListener('storage',function(e){if(!e||e.key==='formflow-theme'||e.key===null)applyTheme()})}catch(e){}setInterval(applyTheme,800)})();</script>
 </body></html>
