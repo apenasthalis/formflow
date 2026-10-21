@@ -1,0 +1,293 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Aquecimento BRUTAL</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: cabeçalho com contagem regressiva, navegação fixa por fase, linha do tempo dia a dia com checklist, trilhas em paralelo no fim */
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --fg:#16212C; --muted:#5A6877; --line:#D9DEE5;
+  --accent:#2457F5; --accent-fg:#FFFFFF; --note-bg:#FFF1B8; --note-fg:#4A3B00; --today:#FFD84D; --ok:#1E8A4C;
+  --p1:#3B6BE0; --p2:#12998A; --p3:#3E9B49; --p4:#8A929E; --p5:#B88A0B; --p6:#E0731F; --p7:#D6455D; --p8:#A24BC9; --p9:#6556E0; --p10:#C2398F; --p11:#16212C;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F161D; --surface:#17212B; --fg:#E7ECF1; --muted:#97A5B4; --line:#2A3846;
+    --accent:#7D9CFF; --accent-fg:#0F161D; --note-bg:#3A3210; --note-fg:#F5E6A6; --today:#FFD84D; --ok:#55C888;
+    --p1:#6F93F5; --p2:#35C2B1; --p3:#62C06D; --p4:#9AA3AF; --p5:#E0B53A; --p6:#F29547; --p7:#F0728A; --p8:#C887E8; --p9:#8E82F5; --p10:#E566B7; --p11:#E7ECF1;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F161D; --surface:#17212B; --fg:#E7ECF1; --muted:#97A5B4; --line:#2A3846;
+  --accent:#7D9CFF; --accent-fg:#0F161D; --note-bg:#3A3210; --note-fg:#F5E6A6; --today:#FFD84D; --ok:#55C888;
+  --p1:#6F93F5; --p2:#35C2B1; --p3:#62C06D; --p4:#9AA3AF; --p5:#E0B53A; --p6:#F29547; --p7:#F0728A; --p8:#C887E8; --p9:#8E82F5; --p10:#E566B7; --p11:#E7ECF1;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.wrap{max-width:900px;margin:0 auto}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{padding-block:32px 20px;display:grid;gap:18px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(44px,11vw,84px);line-height:.92;margin:0;letter-spacing:.005em;text-transform:uppercase;text-wrap:balance}
+.lede{margin:0;max-width:60ch;color:var(--muted)}
+.stats{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end}
+.stat{display:grid;gap:2px;min-width:0}
+.stat b{font-family:var(--display);font-size:40px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.stat span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bar{height:8px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.barlabel{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-block:1px solid var(--line);margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px))}
+nav .row{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:thin}
+nav a,nav button{flex:none;display:flex;align-items:center;gap:7px;font:500 12.5px var(--body);color:var(--fg);text-decoration:none;
+  padding:6px 10px;border:1px solid var(--line);background:var(--surface);border-radius:2px;cursor:pointer}
+nav a:hover,nav button:hover{border-color:var(--accent)}
+nav .sw{width:9px;height:9px;display:inline-block}
+nav .d{font-family:var(--mono);font-size:11px;color:var(--muted)}
+nav button{background:var(--today);color:#16212C;border-color:transparent;font-weight:600}
+
+section{padding-top:36px}
+h2{font-family:var(--display);font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1;margin:0;text-transform:uppercase;text-wrap:balance}
+.princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:14px}
+.princ div{background:var(--surface);padding:12px 14px;min-width:0}
+.princ small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+
+.phase{scroll-margin-top:70px}
+.ph-head{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:end;padding-bottom:12px;border-bottom:2px solid var(--fg)}
+.ph-sw{width:44px;height:44px;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:26px;color:#fff;grid-row:span 2}
+:root[data-theme="dark"] .ph-sw{color:#0F161D}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ph-sw{color:#0F161D}}
+.ph-head h2{min-width:0}
+.ph-meta{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.opt{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--muted);padding:0 6px}
+.goal{margin:12px 0 0;max-width:68ch}
+
+.days{margin-top:6px}
+.day{display:grid;grid-template-columns:78px minmax(0,1fr);gap:0 14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.day.hoje{background:color-mix(in srgb,var(--today) 20%,transparent);margin-inline:-10px;padding-inline:10px;border-bottom-color:var(--today)}
+.dt{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dt b{display:block;font-size:20px;font-weight:500;line-height:1.1}
+.dt span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.dt em{display:inline-block;margin-top:4px;font-style:normal;font-size:10.5px;font-weight:500;background:var(--today);color:#16212C;padding:0 5px}
+.dc{min-width:0}
+.dtop{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.dtop h3{margin:0;font-size:16px;font-weight:600;line-height:1.3;min-width:0}
+.tag{display:inline-block;margin-left:6px;vertical-align:1px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;background:var(--fg);color:var(--bg);padding:1px 6px}
+.chk{flex:none;width:22px;height:22px;margin:0;accent-color:var(--ok);cursor:pointer}
+.dc ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
+.dc li::marker{color:var(--muted)}
+.dc ul ul{margin-top:3px}
+.day.done h3,.day.done ul{color:var(--muted)}
+.day.done h3{text-decoration:line-through;text-decoration-thickness:1px}
+.note{margin:10px 0 0;background:var(--note-bg);color:var(--note-fg);padding:8px 12px;border-radius:2px;font-size:14px}
+.note b{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.pnote{margin:12px 0 0}
+
+.tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}
+.track{background:var(--surface);border:1px solid var(--line);padding:16px;min-width:0}
+.track h3{margin:0 0 2px;font-size:17px}
+.track .r{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:8px}
+.track ul{margin:0;padding-left:18px;display:grid;gap:3px}
+.foot{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;max-width:70ch}
+@media (max-width:480px){.day{grid-template-columns:64px minmax(0,1fr);gap:0 10px}.dt b{font-size:18px}}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Cronograma · 20/10 a 29/11/2026</div>
+  <h1>Aquecimento BRUTAL</h1>
+  <p class="lede">40 dias, do primeiro ajuste no perfil até a live de lançamento em 29/11 (domingo). Cada dia tem uma ação, e as notas amarelas explicam o porquê.</p>
+  <div class="stats">
+    <div class="stat"><b id="sLeft">–</b><span>dias para a live</span></div>
+    <div class="stat"><b id="sDone">0</b><span>ações concluídas</span></div>
+    <div class="stat"><b id="sTotal">0</b><span>ações no total</span></div>
+  </div>
+  <div><div class="bar" role="progressbar" aria-label="Progresso do aquecimento" aria-valuemin="0" aria-valuemax="100" id="pbar"><i id="pfill"></i></div>
+  <div class="barlabel"><span id="pLabel">0%</span><span>marque cada dia ao concluir</span></div></div>
+</header>
+
+<nav aria-label="Fases"><div class="row" id="navrow"></div></nav>
+
+<section id="principios">
+  <h2>Princípios</h2>
+  <div class="princ">
+    <div><small>Objetivo</small>Fazer as pessoas te conhecerem e se interessarem pelos seus resultados. Gerar desejo.</div>
+    <div><small>Ritmo</small>Pílulas aos poucos. 1 story por dia durante 30 dias vale mais que 30 stories num dia só.</div>
+    <div><small>Temperatura</small>Conteúdo frio ou quente, nunca morno.</div>
+    <div><small>Valor</small>Entregue tanto de graça que a pessoa pense "imagina no pago".</div>
+    <div><small>Onde usar</small>Grupos de WhatsApp, e-mail e stories. É psicologia humana.</div>
+    <div><small>Postura</small>Nunca subestime o amor do seu público.</div>
+  </div>
+</section>
+
+<div id="phases"></div>
+
+<section id="paralelo">
+  <h2>Em paralelo</h2>
+  <p class="lede" style="margin-top:8px">Três frentes que rodam junto com as fases acima.</p>
+  <div class="tracks" id="tracks"></div>
+</section>
+
+<p class="foot">Datas calculadas de 20/10 (D-40) até 29/11 (D0). As lives de aquecimento estão em 14/11, 21/11 e 26/11, mas podem andar de dia sem mudar a ordem das fases. A fase de Negação é opcional: use só se fizer sentido para a sua oferta. Seu progresso fica salvo neste navegador.</p>
+</div>
+
+<script>
+(function(){
+var PH=[
+{n:1,name:"Primeiro contato",s:"2026-10-20",e:"2026-10-22",goal:"A primeira impressão decide se o aquecimento sequer começa. Deixe a vitrine pronta antes de atrair gente.",
+ notes:["Se o seu primeiro contato for ruim, nem abre espaço para você aquecer."],
+ days:[
+ {d:"2026-10-20",t:"Arrumar a vitrine do perfil",i:["Bio: quem é você, o que faz, por que é diferente de todos. Gere curiosidade.","Foto de perfil e descrição do grupo de WhatsApp"],n:"As pessoas batem o olho e julgam aparência, perfil, bio, feed, foto e descrição do grupo."},
+ {d:"2026-10-21",t:"Feed com fotos bonitas",i:["Fotos bonitas, com pessoas bonitas, em lugares bonitos","Arquivar o que enfraquece a imagem"],n:"Desejo mimético: as pessoas não desejam o que elas querem, desejam o que os outros querem. Mostrar gente interessada em você facilita todas as fases seguintes."},
+ {d:"2026-10-22",t:"Destaques e qualidade das mensagens",i:["Destaques que mostrem valor: fotos suas, viagens, depoimentos, stories que mais engajaram","Evitar emoji de Android, português ruim e excesso de gírias","O perfil precisa responder, sem dizer: \"Por que eu deveria confiar em você?\" e \"Por que você é diferente dos outros?\""]}
+ ]},
+{n:2,name:"Atração",s:"2026-10-23",e:"2026-11-01",goal:"Conteúdo sem intenção de venda. Aqui você só agrega valor para atrair gente nova para a base.",
+ notes:["Coloque só conteúdos frios ou quentes, nunca mornos.","Cada vídeo precisa responder: \"Por que eu devo parar a minha fofoca para ver o que você está fazendo?\" e \"O que eu tenho a ganhar assistindo esse vídeo?\""],
+ days:[
+ {d:"2026-10-23",t:"Vídeo de curiosidade ou questionamento",i:["CTA no vídeo para seguirem você","Story com enquete ou pergunta"]},
+ {d:"2026-10-24",t:"Vídeo de dica rápida com benefício imediato",i:["CTA para seguir","Story com enquete ou pergunta"]},
+ {d:"2026-10-25",t:"Vídeo com ideia contraintuitiva",i:["Algo que vai contra o senso comum","CTA para seguir"]},
+ {d:"2026-10-26",t:"Vídeo que reforça uma crença central do seu movimento",i:["CTA para seguir","Story que gere reação e possa ser compartilhado"]},
+ {d:"2026-10-27",t:"Vídeo polêmico que gera debate",i:["Responder os comentários no mesmo dia","Story com pergunta para os seguidores"]},
+ {d:"2026-10-28",t:"Vídeo de dica rápida",i:["CTA para seguir","Story com enquete"]},
+ {d:"2026-10-29",t:"Vídeo de curiosidade ou questionamento",i:["CTA para seguir","Responder DMs"]},
+ {d:"2026-10-30",t:"Vídeo contraintuitivo",i:["CTA para seguir","Story com pergunta"]},
+ {d:"2026-10-31",t:"Vídeo de crença central",i:["CTA para seguir","Story que force reação"]},
+ {d:"2026-11-01",t:"Vídeo polêmico + balanço da fase",i:["Conferir: novos leads, views nos stories, taxa de resposta na DM, comentários, pessoas participando ativamente","Ativar o modo influencer: postar coisas que podem ser compartilhadas"]}
+ ]},
+{n:3,name:"Reciprocidade e valor",s:"2026-11-02",e:"2026-11-08",goal:"Pense em quem está te conhecendo agora: para essa pessoa você é alguém aleatório. O objetivo é virar conhecido e gerar conexão.",
+ notes:["A ideia é agregar tanto valor grátis que a pessoa se pergunte \"imagina no pago\". Essa filosofia dita todo o fluxo do lançamento."],
+ days:[
+ {d:"2026-11-02",t:"Estar presente",i:["Stories e mensagens no grupo todos os dias"],n:"As pessoas tendem a gostar mais de quem elas têm mais contato diariamente."},
+ {d:"2026-11-03",t:"Ajudar",i:["Responder perguntas com seus insights mais valiosos","Responder de um jeito específico, que a pessoa nunca viu antes"]},
+ {d:"2026-11-04",t:"Resolver o problema de alguém de graça",i:["Responder uma pergunta genuína com uma pílula, não com tudo de uma vez"],n:"Entregue pílulas aos poucos. Tudo de uma vez sobrecarrega e perde o impacto."},
+ {d:"2026-11-05",t:"Engajar",i:["Ser divertido e querido","Responder DMs com cuidado, sem parecer BOT"]},
+ {d:"2026-11-06",t:"Contar mais sobre você",i:["O que faz, onde mora, suas histórias mais incríveis"]},
+ {d:"2026-11-07",t:"Se posicionar como alguém de valor, com sutileza",i:["Errado: \"Sou foda e faço R$ 3 mil por dia\". Só faz parecerem golpista.","Certo: \"Estava viajando para a Europa e tive um insight muito interessante\"","Certo: \"Estava com meus amigos em um evento e fizemos tal coisa\""],n:"É a arte da Sprezzatura: mostrar valor sem anunciar."},
+ {d:"2026-11-08",t:"Provas de foco nos seus projetos",i:["Mostrar que você cria coisas incríveis e trabalha por um propósito maior que você","Passar o sentimento de que você não precisa das pessoas, mas quer elas por perto"]}
+ ]},
+{n:4,name:"Negação",s:"2026-11-09",e:"2026-11-11",opt:true,goal:"Contraintuitivo: a pessoa deve sentir que NÃO PODE TER o seu produto. As pessoas sentem um desejo inexplicável pelo que não podem ter.",
+ notes:["Use com cuidado. Se abusar, perde o efeito e te chamam de charlatão.","Se você disse que as vagas estão fechadas, elas precisam estar realmente fechadas. Não adianta falar que não tem vaga e vender na DM: a verdade se espalha."],
+ days:[
+ {d:"2026-11-09",t:"Stories de porta fechada",i:["\"Vagas estão encerradas\"","\"Eu nem planejo lançar nada no momento, estou com muitos projetos\"","\"Você não conseguiria comprar algo meu nem se quisesse\""],n:"A Rolex faz isso: certos relógios só em edição limitada ou para membros. Marcas de luxo e sociedades secretas fazem o tempo todo."},
+ {d:"2026-11-10",t:"Escassez com histórico real",i:["\"Faz mais de 2 anos que não abro vagas, da última vez encerraram em menos de 24 horas\"","\"Da última vez, +100 pessoas entraram nas primeiras 36h\"","Disclaimer: o acompanhamento suga muita energia e tempo seu"]},
+ {d:"2026-11-11",t:"Lista de espera",i:["Formulário com a pergunta: \"Por qual motivo você não participou das últimas turmas?\"","Opções: estava sem dinheiro, não acreditava até ver resultados, precisava de mais tempo para pensar"]}
+ ]},
+{n:5,name:"Cultivar a possibilidade",s:"2026-11-12",e:"2026-11-14",goal:"Aqui o aquecimento começa de verdade. Você mapeia o desejo do seu público.",
+ notes:["Até este ponto você não vendeu nem ofereceu nada. Só entregou valor e perguntou."],
+ days:[
+ {d:"2026-11-12",t:"Perguntar se existe interesse",i:["Story e mensagem no grupo: \"Estou pensando em fazer uma aula ao vivo / produto / grupo. Você teria interesse?\""]},
+ {d:"2026-11-13",t:"Coletar e responder",i:["Responder quem pediu: \"Simmm, por favor!\", \"Abre vagas!\"","Anotar os temas mais pedidos"],n:"Se as fases anteriores foram bem feitas, centenas de pessoas respondem empolgadas."},
+ {d:"2026-11-14",t:"Mostrar as respostas",i:["Printar a maioria das respostas e postar nos stories, várias pessoas dizendo \"sim\"","Efeito desejado: \"nossa, tem muita gente interessada nisso, eu também quero\""],tag:"Live de aquecimento #1",n:"Efeito manada e desejo mimético a seu favor."}
+ ]},
+{n:6,name:"Mistério e tomada de decisão",s:"2026-11-15",e:"2026-11-17",goal:"Você decide, publicamente, fazer a aula gratuita e começa a levar as pessoas para pontos de contato mais fortes.",
+ notes:["Você não precisa explicar tanto. Apenas exponha a data."],
+ days:[
+ {d:"2026-11-15",t:"Anunciar a aula gratuita",i:["\"Decidi fazer uma aula gratuita dia 29/11 te ensinando tudo sobre...\"","Abrir caixinha de perguntas, com texto embaixo: tema + \"Black Friday (em breve)\"","Link da live no grupo, na descrição do grupo e na API oficial, para marcarem o sininho"],n:"A caixinha aquece o público e planta a ideia da Black Friday sem falar da oferta."},
+ {d:"2026-11-16",t:"Fator mistério e pontos de contato fortes",i:["Data 29/11 na bio, nos destaques e no meio da tela dos stories","Levar a audiência para o canal de transmissão e para a lista de e-mails","Se quiser ir além: entrevistar pessoas na rua perguntando se viram que vai ter a Black Friday"]},
+ {d:"2026-11-17",t:"Liberar fragmentos",i:["Compartilhar um \"livro secreto\" raro, com tom de gema que poucos conhecem","Fechar o dia com: \"Tudo vai ser explicado na live. Você está pronto?\""]}
+ ]},
+{n:7,name:"Níveis de consciência",s:"2026-11-18",e:"2026-11-20",goal:"Tocar nas dores do público e subir a consciência aos poucos: 1 inconsciente, 2 consciente do problema, 3 consciente da solução, 4 consciente do produto, 5 totalmente consciente.",
+ notes:[],
+ days:[
+ {d:"2026-11-18",t:"Nível 1 para 2: mostrar o problema",i:["Vídeo com informações sobre os problemas enfrentados pelo público","Responder: \"Por que eu não consegui resolver meu problema até agora?\" Mostre que o inimigo em comum é o culpado, não ela."]},
+ {d:"2026-11-19",t:"Nível 2 para 3: mostrar que há solução",i:["Vídeo reforçando a importância de resolver e que NÃO É NORMAL ficar sem isso","Vídeo explicando como resolver: o quê, o porquê e só um pouco do como"]},
+ {d:"2026-11-20",t:"Nível 3 para 4: exemplos de sucesso",i:["Casos e aplicações práticas, de preferência de alunos","Responder: \"Você acha que pode me ajudar?\" com prova social: \"já ajudei +100 pessoas, por que seria diferente contigo?\""]}
+ ]},
+{n:8,name:"Sobre o produto",s:"2026-11-21",e:"2026-11-22",goal:"Responder o que a pessoa se pergunta antes de comprar: como foi criado, por que é diferente, o que esperar.",
+ notes:["Justificar a existência de uma comunidade ajuda: é frustrante não ter um ambiente de pessoas com as mesmas crenças, paixões e curiosidades."],
+ days:[
+ {d:"2026-11-21",t:"Por que e como o produto nasceu",i:["Comece pelo porquê","Explique por que ele é melhor que o das outras pessoas ao redor","Responder: \"Como você é diferente dos demais?\" contando sua história pessoal e a de criação","Bater no inimigo em comum, mostrando o que você via no mercado e não te inspirava"],tag:"Live de aquecimento #2"},
+ {d:"2026-11-22",t:"Backstage e expectativas",i:["Gravar bastidores: o carinho que você coloca nos projetos e como foi desenvolvido","Responder: \"Quais expectativas posso ter?\" com \"Não crie expectativas. Se você não confia em mim, não é para você\"","Dizer que você se sente \"forçado e obrigado\" a lançar: \"muitas pessoas estão pedindo essa ajuda, seria injusto não dar uma oportunidade\"","Direcionar para o produto: \"E como eu resolvo isso então?\""]}
+ ]},
+{n:9,name:"Quebra de objeções",s:"2026-11-23",e:"2026-11-24",goal:"Quebrar as objeções universais e as do seu nicho, antes de o carrinho abrir.",
+ notes:[],
+ days:[
+ {d:"2026-11-23",t:"Objeções universais",i:["Dinheiro e preço","Tempo e prioridade","Necessidade e relevância","Confiança e credibilidade","\"Tenho que falar com a esposa/marido\"","\"Não tenho cartão\""]},
+ {d:"2026-11-24",t:"Objeções do nicho",i:["\"Como isso é diferente de tudo que eu já comprei?\"","Listar as objeções mais comuns do seu público e responder uma por story, com prova social"]}
+ ]},
+{n:10,name:"Engajamento e comparecimento",s:"2026-11-25",e:"2026-11-28",goal:"Fazer a pessoa tratar a live como um evento que não pode perder.",
+ notes:[],
+ days:[
+ {d:"2026-11-25",t:"Mostrar a importância do evento",i:["A roupa que você vai usar","O cenário","Playlist especial","O quanto aquilo vai reverberar pelas próximas gerações"]},
+ {d:"2026-11-26",t:"Aumentar a taxa de comparecimento",i:["\"Não vai ficar gravada\"","\"Vou passar algo que nunca passei antes na minha vida\"","\"Passei X meses construindo essa apresentação\" e \"batendo a cabeça na parede para vocês terem acesso em menos de 1 hora\""],tag:"Live de aquecimento #3"},
+ {d:"2026-11-27",t:"Medo de ficar de fora",i:["\"Imagina ter a oportunidade da sua vida. Se você perder, vai ter uma próxima? O que te faz ter tanta certeza?\"","Presente secreto para quem estiver na live","Desafio: todo mundo posta uma foto fazendo algo junto e te marca","Notícias, validações externas e headlines sensacionalistas"]},
+ {d:"2026-11-28",t:"Última chamada",i:["\"Se você quer entrar, não pode perder. Marque na sua agenda.\"","Lembrete no grupo, no canal de transmissão e por e-mail","Conferir sala, áudio, cenário e roteiro da live"],n:"Pico de provas sociais hoje, junto com a sua foto ou nome da marca."}
+ ]},
+{n:11,name:"Live de lançamento",s:"2026-11-29",e:"2026-11-29",goal:"Dia da aula gratuita. O aquecimento terminou aqui.",
+ notes:[],
+ days:[
+ {d:"2026-11-29",t:"Live de lançamento",i:["Avisar nos stories e no grupo logo cedo","Abrir a live no horário combinado, sem atraso","Entregar o prometido: o quê e o porquê. A oferta entra no fim, como combinado no roteiro."],tag:"D0"}
+ ]}
+];
+var TR=[
+{t:"Sequências de stories",r:"23/10 a 14/11",u:["Storytelling: histórias suas ou de alunos, com texto e imagem. Poderoso para conexão e para quebrar objeção sem parecer venda.","Pílula de conhecimento: além de educar, instala as crenças centrais do seu movimento.","Crenças: defina quais crenças instalar na audiência e faça isso pelo conteúdo. Ex.: para compra por impulso, instale a crença de agir imediatamente.","Ritmo: 1 story por dia, nunca 30 de uma vez."]},
+{t:"Provas sociais",r:"02/11 a 28/11",u:["Spamme provas sociais de alunos e suas: \"já estou tendo resultado, compre você ou não\".","Use resultados palpáveis e relevantes para o público, nunca genéricos.","Ruim: \"Comprei seu curso e agora estou mais feliz.\" Bom: \"Fiz +R$ 100 mil depois do curso e peguei 300k views em um TikTok.\"","Poste sempre junto de uma foto sua ou do nome da marca, para as pessoas associarem."]},
+{t:"Lives de aquecimento",r:"14/11, 21/11 e 26/11",u:["No máximo 2 a 3, para a audiência não confundir com a live principal.","Tema específico e relevante. Entregue o quê e o porquê, nunca o como.","Live com aluno de resultado brutal funciona muito: destrinche o passo a passo com ele.","No meio da live, chame para a live de lançamento. No fim, faça a última chamada."]}
+];
+var LIVE=new Date(2026,10,29,12), WD=["dom","seg","ter","qua","qui","sex","sáb"];
+function P(s){var a=s.split("-");return new Date(+a[0],+a[1]-1,+a[2],12)}
+function dd(s){var a=s.split("-");return a[2]+"/"+a[1]}
+function dayDiff(a,b){return Math.round((a-b)/864e5)}
+function E(x){return String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+var store={};
+try{store=JSON.parse(localStorage.getItem("aq-brutal-v1")||"{}")||{}}catch(e){store={}}
+function save(){try{localStorage.setItem("aq-brutal-v1",JSON.stringify(store))}catch(e){}}
+var now=new Date(),todayKey=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+var total=0,html="",nav="";
+PH.forEach(function(p){
+  var range=dd(p.s)+(p.s===p.e?"":" a "+dd(p.e)), nd=p.days.length;
+  total+=nd;
+  nav+='<a href="#f'+p.n+'"><i class="sw" style="background:var(--p'+p.n+')"></i>'+E(p.name)+' <span class="d">'+range+'</span></a>';
+  html+='<section class="phase" id="f'+p.n+'"><div class="ph-head"><div class="ph-sw" style="background:var(--p'+p.n+')">'+p.n+'</div><h2>'+E(p.name)+'</h2><div class="ph-meta"><span>'+range+'</span><span>'+nd+(nd===1?" dia":" dias")+'</span>'+(p.opt?'<span class="opt">opcional</span>':'')+'</div></div><p class="goal">'+E(p.goal)+'</p>';
+  p.notes.forEach(function(n){html+='<p class="note pnote"><b>Nota</b>'+E(n)+'</p>'});
+  html+='<div class="days">';
+  p.days.forEach(function(d){
+    var dt=P(d.d), D=dayDiff(dt,LIVE), lab=D===0?"D0":"D"+D;
+    html+='<div class="day" data-d="'+d.d+'"><div class="dt"><b>'+dd(d.d)+'</b><span>'+WD[dt.getDay()]+' · '+lab+'</span><em hidden>hoje</em></div><div class="dc"><div class="dtop"><h3>'+E(d.t)+(d.tag?'<span class="tag">'+E(d.tag)+'</span>':'')+'</h3><input class="chk" type="checkbox" id="c-'+d.d+'" aria-label="Concluir '+dd(d.d)+'"></div><ul>'+d.i.map(function(x){return '<li>'+E(x)+'</li>'}).join("")+'</ul>'+(d.n?'<p class="note"><b>Nota</b>'+E(d.n)+'</p>':'')+'</div></div>';
+  });
+  html+='</div></section>';
+});
+nav+='<a href="#paralelo"><i class="sw" style="background:var(--fg)"></i>Em paralelo</a>';
+document.getElementById("phases").innerHTML=html;
+document.getElementById("navrow").innerHTML='<button type="button" id="goToday">Ir para hoje</button>'+nav;
+document.getElementById("tracks").innerHTML=TR.map(function(t){return '<div class="track"><h3>'+E(t.t)+'</h3><div class="r">'+t.r+'</div><ul>'+t.u.map(function(x){return '<li>'+E(x)+'</li>'}).join("")+'</ul></div>'}).join("");
+document.getElementById("sTotal").textContent=total;
+var left=dayDiff(LIVE,new Date(now.getFullYear(),now.getMonth(),now.getDate(),12));
+document.getElementById("sLeft").textContent=left>0?left:(left===0?"Hoje":"0");
+function refresh(){
+  var n=0;
+  document.querySelectorAll(".day").forEach(function(el){
+    var k=el.getAttribute("data-d"), c=el.querySelector(".chk"), on=!!store[k];
+    c.checked=on; el.classList.toggle("done",on); if(on)n++;
+    var isT=k===todayKey; el.classList.toggle("hoje",isT); el.querySelector("em").hidden=!isT;
+  });
+  var pc=Math.round(n/total*100);
+  document.getElementById("sDone").textContent=n;
+  document.getElementById("pfill").style.width=pc+"%";
+  document.getElementById("pbar").setAttribute("aria-valuenow",pc);
+  document.getElementById("pLabel").textContent=pc+"% concluído";
+}
+document.getElementById("phases").addEventListener("change",function(e){
+  if(e.target.classList.contains("chk")){var k=e.target.id.slice(2);if(e.target.checked)store[k]=1;else delete store[k];save();refresh()}
+});
+document.getElementById("goToday").addEventListener("click",function(){
+  var t=document.querySelector('.day[data-d="'+todayKey+'"]');
+  if(!t){var all=document.querySelectorAll(".day");t=todayKey<all[0].getAttribute("data-d")?all[0]:all[all.length-1]}
+  t.scrollIntoView({block:"center",behavior:"smooth"});
+});
+refresh();
+})();
+</script>
+
+</body></html>

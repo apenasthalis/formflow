@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, LayoutList, LogOut, Menu, Plus, Settings, X } from 'lucide-react';
+import { BarChart3, BookOpen, LayoutList, LogOut, Menu, Plus, Settings, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { to: '/', label: 'Formulários', icon: LayoutList, end: true },
   { to: '/resultados', label: 'Resultados', icon: BarChart3, end: false },
+  { to: '/playbook', label: 'Aquecimento BRUTAL', icon: BookOpen, end: false },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, end: false },
 ];
 
@@ -54,8 +55,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        <Link to="/" aria-label="Página inicial do FormFlow">
-          <Logo />
+        <Link to="/" aria-label="Página inicial do ambiente babilonico">
+          <Logo label="ambiente babilonico" />
         </Link>
         <div className="w-9" />
       </header>
@@ -69,8 +70,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           aria-label="Navegação principal"
         >
           <div className="flex h-14 items-center border-b px-5 lg:h-16">
-            <Link to="/" aria-label="Página inicial do FormFlow">
-              <Logo />
+            <Link to="/" aria-label="Página inicial do ambiente babilonico">
+              <Logo label="ambiente babilonico" />
             </Link>
           </div>
 

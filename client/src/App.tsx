@@ -12,6 +12,7 @@ import { ResultsOverviewPage } from '@/pages/ResultsOverviewPage';
 import { ResultsPage } from '@/pages/ResultsPage';
 import { SubmissionDetailPage } from '@/pages/SubmissionDetailPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { PlaybookPage } from '@/pages/PlaybookPage';
 import { PublicFormPage } from '@/pages/public/PublicFormPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
@@ -112,6 +113,15 @@ export function App() {
           element={
             <RequireAuth>
               <SubmissionDetailPage />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/playbook"
+          element={
+            <RequireAuth>
+              <PlaybookPage />
             </RequireAuth>
           }
         />
